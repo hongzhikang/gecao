@@ -1,0 +1,141 @@
+/**
+ * Player.js - 玩家实体
+ * 血量、经验、等级、移动、职业策略、攻击动画
+ */
+
+import * as THREE from 'three';
+import { SpriteAnimator } from '../utils/SpriteAnimator.js';
+
+export class Player {
+  constructor(options = {}) {
+    this.position = { x: 0, y: 0 };
+    this.velocity = { x: 0, y: 0 };
+    this.speed = options.speed ?? 180;
+    this.radius = options.radius ?? 24;
+
+    this.maxHp = options.maxHp ?? 100;
+    this.hp = this.maxHp;
+    this.exp = 0;
+    this.expToNext = options.expToNext ?? 10;
+    this.level = 1;
+
+    this.sprite = null;
+    this.mesh = new THREE.Group();
+    this.classInstance = null; // 职业实例 Warrior | Mage | Summoner
+    this.game = null;
+
+    this.invincibleUntil = 0;
+    this.invincibleDuration = 0.5;
+
+    this.idleTexture = null;
+    this.attackFrames = [];
+    this.animator = null;
+    this.playingAttack = false;
+  }
+
+  _getAttackFramePaths() {
+    const base = '/assets/characters/';
+    const map = {
+      warrior: { name: 'warrior_attack_frame', count: 5 },
+      mage: { name: 'mage_attack_frame', count: 5 },
+      summoner: { name: 'summoner_cast_frame', count: 5 },
+    };
+    const key = this.classInstance?.constructor?.name?.toLowerCase() ?? 'warrior';
+    const { name, count } = map[key] ?? map.warrior;
+    return Array.from({ length: count }, (_, i) => `${base}${name}${i + 1}.png`);
+  }
+
+  setGame(game) {
+    this.game = game;
+  }
+
+  setClass(classInstance) {
+    this.classInstance = classInstance;
+    if (classInstance) classInstance.applyToPlayer(this);
+  }
+
+  async createSprite(assetLoader) {
+    const idlePath = this.classInstance?.spritePath ?? '/assets/characters/warrior_idle.png';
+    const idleTex = await assetLoader.loadTexture(idlePath);
+    const attackPaths = this._getAttackFramePaths();
+    const attackTexs = attackPaths.length
+      ? await Promise.all(attackPaths.map((p) => assetLoader.loadTexture(p)))
+      : [];
+    const mat = new THREE.SpriteMaterial({
+      map: idleTex,
+      transparent: true,
+      alphaTest: 0.05,
+      depthTest: true,
+      depthWrite: false,
+    });
+    this.sprite = new THREE.Sprite(mat);
+    this.sprite.scale.set(64, 64, 1);
+    this.mesh.add(this.sprite);
+    this.idleTexture = idleTex;
+    this.attackFrames = attackTexs.length ? attackTexs : [idleTex];
+    this.animator = new SpriteAnimator(this.attackFrames, 0.08);
+    return this.mesh;
+  }
+
+  playAttackAnimation() {
+    if (!this.attackFrames?.length || this.attackFrames.length === 1) return;
+    this.playingAttack = true;
+    this.animator.playOnce(this.attackFrames, () => {
+      this.playingAttack = false;
+      if (this.sprite?.material && this.idleTexture) this.sprite.material.map = this.idleTexture;
+    });
+  }
+
+  takeDamage(amount) {
+    if (this.game?.time < this.invincibleUntil) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.invincibleUntil = (this.game?.time ?? 0) + this.invincibleDuration;
+    if (this.game?.onPlayerHit) this.game.onPlayerHit();
+  }
+
+  heal(amount) {
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+  }
+
+  addExp(value) {
+    this.exp += value;
+    while (this.exp >= this.expToNext) {
+      this.exp -= this.expToNext;
+      this.level++;
+      this.expToNext = Math.floor(this.expToNext * 1.2);
+      if (this.game?.onLevelUp) this.game.onLevelUp(this);
+    }
+  }
+
+  update(dt, inputManager) {
+    const axis = inputManager.getAxis();
+    this.velocity.x = axis.x * this.speed;
+    this.velocity.y = axis.y * this.speed;
+
+    this.position.x += this.velocity.x * dt;
+    this.position.y += this.velocity.y * dt;
+
+    this.mesh.position.set(this.position.x, this.position.y, 0);
+
+    if (this.animator && this.playingAttack) {
+      this.animator.update(dt, this.sprite.material);
+    }
+
+    if (this.classInstance && this.classInstance.update) {
+      this.classInstance.update(dt, this);
+    }
+  }
+
+  getCollisionRadius() {
+    return this.radius;
+  }
+
+  isAlive() {
+    return this.hp > 0;
+  }
+
+  dispose() {
+    if (this.sprite?.material?.map) this.sprite.material.map.dispose();
+    if (this.sprite?.material) this.sprite.material.dispose();
+  }
+}

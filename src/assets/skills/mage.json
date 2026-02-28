@@ -1,0 +1,31 @@
+{
+  "mage": {
+    "spritePath": "/assets/characters/mage_idle.png",
+    "orb": {
+      "id": "mage_orb",
+      "name": "魔法弹",
+      "cooldown": 0.8,
+      "cooldownPerLevel": -0.06,
+      "speed": 380,
+      "damage": 22,
+      "damagePerLevel": 5,
+      "explodeRadius": 50,
+      "explodeRadiusPerLevel": 10,
+      "slowDuration": 1.5,
+      "slowFactor": 0.4,
+      "maxLevel": 5
+    },
+    "blast": {
+      "id": "mage_blast",
+      "name": "范围爆炸",
+      "cooldown": 2.5,
+      "cooldownPerLevel": -0.15,
+      "speed": 0,
+      "damage": 35,
+      "damagePerLevel": 8,
+      "explodeRadius": 90,
+      "explodeRadiusPerLevel": 12,
+      "maxLevel": 5
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "summoner": {
+    "spritePath": "/assets/characters/summoner_idle.png",
+    "summon": {
+      "id": "summoner_minion",
+      "name": "召唤小弟",
+      "cooldown": 8,
+      "cooldownPerLevel": -0.5,
+      "summonCount": 1,
+      "summonCountPerLevel": 1,
+      "summonHp": 35,
+      "summonHpPerLevel": 8,
+      "summonDamage": 10,
+      "summonDamagePerLevel": 3,
+      "summonRadius": 16,
+      "summonDuration": 18,
+      "attackRange": 55,
+      "attackCooldown": 0.7,
+      "maxLevel": 5
+    }
+  }
+}
