@@ -34,6 +34,17 @@
     #ui-overlay .kill-timer {
       position: absolute; top: 12px; right: 12px; color: #fff; font: 14px sans-serif;
     }
+    #ui-overlay .wave-num {
+      position: absolute; top: 40px; left: 12px; color: #8af; font: 13px sans-serif;
+    }
+    #ui-overlay .pause-btn {
+      position: absolute; bottom: 12px; right: 12px; padding: 6px 12px; font-size: 12px;
+      background: #333; color: #fff; border: 1px solid #666; border-radius: 4px;
+      cursor: pointer; pointer-events: auto; z-index: 11;
+    }
+    #wave-reward-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.95); border: 2px solid #0af; border-radius: 8px; padding: 20px; z-index: 25; pointer-events: auto; min-width: 300px; }
+    #wave-reward-panel.visible { display: block !important; }
+    #wave-reward-panel .choice { margin: 8px 0; padding: 12px; background: #222; border-radius: 4px; cursor: pointer; color: #fff; }
     #chest-reward-panel.visible { display: block !important; }
     #chest-reward-panel .choice { margin: 8px 0; padding: 12px; background: #222; border-radius: 4px; cursor: pointer; color: #fff; }
     #game-over-panel.game-over-hidden { display: none !important; }
@@ -87,7 +98,12 @@
 <body>
   <div id="character-select">
     <h1>割草幸存者</h1>
-    <p class="subtitle">选择你的职业开始战斗</p>
+    <p class="subtitle">选择模式与职业开始战斗</p>
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+      <button type="button" class="diff-btn" id="mode-classic">经典模式</button>
+      <button type="button" class="diff-btn" id="mode-survival">生存模式</button>
+    </div>
+    <p class="subtitle" style="margin-bottom:8px;">选择职业</p>
     <div class="cards">
       <div class="card" data-class="warrior">
         <img src="/assets/characters/warrior_idle.png" alt="战士" />
@@ -110,8 +126,14 @@
   <div id="ui-overlay">
     <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
     <div class="kill-timer">Kills: <span id="kill-count">0</span> | <span id="survival-timer">00:00</span></div>
+    <div class="wave-num" id="wave-num" style="display:none;">波次 <span id="wave-count">1</span></div>
     <div class="level-text">Lv.<span id="level-num">1</span></div>
     <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <button type="button" class="pause-btn" id="pause-btn">暂停</button>
+  </div>
+  <div id="wave-reward-panel">
+    <h2 id="wave-reward-title" style="color:#0af;margin-bottom:12px;text-align:center;">波次完成</h2>
+    <div id="wave-reward-choices"></div>
   </div>
   <div id="upgrade-panel">
     <h2>升级！选择一项</h2>

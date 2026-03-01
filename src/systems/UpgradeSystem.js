@@ -164,6 +164,7 @@ export class UpgradeSystem {
   }
 
   _treasurePool(player) {
+    const game = this.game;
     return [
       { name: '+Attack', desc: 'Damage +10%', apply: () => { player.damageMultiplier = (player.damageMultiplier || 1) * 1.1; } },
       { name: '+Attack Speed', desc: 'Attack speed +5%', apply: () => { player.attackSpeedMultiplier = (player.attackSpeedMultiplier || 1) * 1.05; } },
@@ -171,7 +172,46 @@ export class UpgradeSystem {
       { name: '+Move Speed', desc: 'Move speed +5%', apply: () => { player.baseSpeed *= 1.05; player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1); } },
       { name: '+Area Damage', desc: 'Skill area +15%', apply: () => { player.areaDamageMultiplier = (player.areaDamageMultiplier || 1) * 1.15; } },
       { name: '+Lifesteal', desc: 'Heal 2% of damage dealt', apply: () => { player.lifestealPercent = (player.lifestealPercent || 0) + 2; } },
+      { name: '治疗', desc: '恢复 40% 最大生命', apply: () => { player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.4)); } },
+      { name: '护盾', desc: '获得 30 点临时护盾', apply: () => { player.shieldHp = (player.shieldHp || 0) + 30; } },
+      { name: '全屏爆发', desc: '对全场敌人造成 50 伤害', apply: () => { if (game?.getEnemiesInRadius && game?.player) { const list = game.getEnemiesInRadius(game.player.position.x, game.player.position.y, 9999); list.forEach((e) => { if (e.isAlive()) e.takeDamage(50, game.player.position.x, game.player.position.y, true); }); } } },
     ];
+  }
+
+  showWaveReward(player, wave, onClose) {
+    const pool = [
+      { name: '伤害提升(本波)', desc: '本波内伤害 +25%', apply: () => { player.damageMultiplier = (player.damageMultiplier || 1) * 1.25; } },
+      { name: '治疗', desc: '恢复 30% 最大生命', apply: () => { player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3)); } },
+      { name: '护盾', desc: '获得 20 点临时护盾', apply: () => { player.shieldHp = (player.shieldHp || 0) + 20; } },
+      { name: '移速提升(本波)', desc: '本波内移速 +15%', apply: () => { player.speed *= 1.15; } },
+    ];
+    const opts = this._shuffle([...pool]).slice(0, 3);
+    const panel = document.getElementById('wave-reward-panel');
+    const title = document.getElementById('wave-reward-title');
+    const choices = document.getElementById('wave-reward-choices');
+    if (!panel || !choices) {
+      if (onClose) onClose();
+      return;
+    }
+    choices.innerHTML = '';
+    if (title) title.textContent = `波次 ${wave} 完成！选一项奖励`;
+    opts.forEach((opt) => {
+      const div = document.createElement('div');
+      div.className = 'choice';
+      div.innerHTML = `<strong>${opt.name}</strong><br><small>${opt.desc}</small>`;
+      div.onclick = () => {
+        opt.apply();
+        this.hideWaveReward();
+        if (onClose) onClose();
+      };
+      choices.appendChild(div);
+    });
+    panel.classList.add('visible');
+  }
+
+  hideWaveReward() {
+    const panel = document.getElementById('wave-reward-panel');
+    if (panel) panel.classList.remove('visible');
   }
 
   showChestReward(player, isGolden, onClose) {

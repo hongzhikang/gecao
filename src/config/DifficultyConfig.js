@@ -12,6 +12,7 @@ export const DifficultyConfig = {
     spawnRateMultiplier: 0.8,
     enemyCountMultiplier: 0.8,
     expGainMultiplier: 1.2,
+    dropRateMultiplier: 1.3,
     eliteWeightBonus: 0,
   },
   normal: {
@@ -22,6 +23,7 @@ export const DifficultyConfig = {
     spawnRateMultiplier: 1,
     enemyCountMultiplier: 1,
     expGainMultiplier: 1,
+    dropRateMultiplier: 1,
     eliteWeightBonus: 0,
   },
   hard: {
@@ -32,6 +34,7 @@ export const DifficultyConfig = {
     spawnRateMultiplier: 1.4,
     enemyCountMultiplier: 1.4,
     expGainMultiplier: 0.9,
+    dropRateMultiplier: 0.85,
     eliteWeightBonus: 0,
   },
   hell: {
@@ -42,9 +45,9 @@ export const DifficultyConfig = {
     spawnRateMultiplier: 1.8,
     enemyCountMultiplier: 1.8,
     expGainMultiplier: 0.8,
-    eliteWeightBonus: 1.5, // 精英怪权重乘数（在原有 weight 上再乘）
+    dropRateMultiplier: 0.7,
+    eliteWeightBonus: 1.5,
   },
-  // 兼容旧存档
   nightmare: {
     id: 'nightmare',
     name: '地狱',
@@ -53,6 +56,7 @@ export const DifficultyConfig = {
     spawnRateMultiplier: 1.8,
     enemyCountMultiplier: 1.8,
     expGainMultiplier: 0.8,
+    dropRateMultiplier: 0.7,
     eliteWeightBonus: 1.5,
   },
 };

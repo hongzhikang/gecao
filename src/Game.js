@@ -84,6 +84,7 @@ export class Game {
     this.composer.addPass(bloomPass);
     this.bloomPass = bloomPass;
 
+    this.gameMode = options.mode ?? 'classic';
     const difficultyId = options.difficulty === 'nightmare' ? 'hell' : (options.difficulty ?? 'normal');
     const difficulty = DifficultyConfig[difficultyId] ?? DifficultyConfig.normal;
     this.difficulty = difficultyId;
@@ -94,6 +95,7 @@ export class Game {
     this.spawnRateMultiplier = difficulty.spawnRateMultiplier;
     this.enemyCountMultiplier = difficulty.enemyCountMultiplier ?? 1;
     this.expGainMultiplier = difficulty.expGainMultiplier;
+    this.dropRateMultiplier = difficulty.dropRateMultiplier ?? 1;
     this.eliteWeightBonus = difficulty.eliteWeightBonus ?? 0;
 
     this.spawnSystem = new SpawnSystem(this);
@@ -117,6 +119,8 @@ export class Game {
     this.hurtFlashUntil = 0;
     this.levelUpSlowMotionUntil = 0;
     this.pendingLevelUpPlayer = null;
+    this.lastChestDropTime = 0;
+    this.chestDropInterval = 55;
     this._bindUI();
   }
 
@@ -224,6 +228,8 @@ export class Game {
     const panel = document.getElementById('upgrade-panel');
     const choices = document.getElementById('upgrade-choices');
     if (panel && choices) this.upgradeSystem.setPanel(panel, choices);
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) pauseBtn.onclick = () => { this.paused = !this.paused; pauseBtn.textContent = this.paused ? '继续' : '暂停'; };
   }
 
   getEnemiesInRadius(x, y, r) {
@@ -333,8 +339,26 @@ export class Game {
     this.player.classInstance?.setGame(this);
     this.waveSystem.waveStartTime = this.time;
     this.spawnSystem.lastSpawnTime = this.time;
-    const waveConfig = { enemies: [{ type: 'basicZombie', count: 6 }] };
-    await this.spawnSystem.spawnWave(waveConfig);
+    this.lastChestDropTime = this.time;
+    this.waveSystem.onWaveComplete = (wave) => {
+      this.paused = true;
+      this.upgradeSystem.showWaveReward(this.player, wave, () => {
+        this.paused = false;
+        this.waveSystem.advanceWave();
+        this.waveSystem.isBetweenWaves = false;
+        this.waveSystem.waveStartTime = this.time;
+        const cfg = this.waveSystem.getWaveConfig();
+        this.spawnSystem.spawnWave(cfg);
+      });
+    };
+    if (this.waveSystem.isSurvivalMode()) {
+      this.waveSystem.advanceWave();
+      const cfg = this.waveSystem.getWaveConfig();
+      await this.spawnSystem.spawnWave(cfg);
+    } else {
+      const waveConfig = { enemies: [{ type: 'basicZombie', count: 6 }] };
+      await this.spawnSystem.spawnWave(waveConfig);
+    }
   }
 
   update(dt) {
@@ -419,6 +443,7 @@ export class Game {
     }
     this._updateParticlePoints();
 
+    this.waveSystem.update(this.time);
     this._collisionUpdate();
     if (!this.player.isAlive() && !this.gameOver) {
       this.gameOver = true;
@@ -426,6 +451,14 @@ export class Game {
       this.onGameOver?.();
     }
     this._chestCollision();
+    if (this.time - this.lastChestDropTime >= this.chestDropInterval) {
+      this.lastChestDropTime = this.time;
+      const angle = Math.random() * Math.PI * 2;
+      const r = 120 + Math.random() * 80;
+      const cx = this.player.position.x + Math.cos(angle) * r;
+      const cy = this.player.position.y + Math.sin(angle) * r;
+      if (Math.random() < (this.dropRateMultiplier ?? 1)) this._spawnChest(cx, cy, Math.random() < 0.15);
+    }
     this.spawnSystem.trySpawn(this.time);
     this._cameraUpdate(dt);
     this._backgroundUpdate();
@@ -460,6 +493,12 @@ export class Game {
       if (gameTime >= (e.lastAttackTime ?? -1e9) + cooldown) {
         this.player.takeDamage(e.damage);
         e.lastAttackTime = gameTime;
+        if (e.slowOnHit && this.player.speed) {
+          const base = this.player.baseSpeed * (this.player.speedMultiplierFromClass ?? 1);
+          this.player.speed = base * (e.slowFactor ?? 0.5);
+          const dur = (e.slowDuration ?? 1.5) * 1000;
+          setTimeout(() => { if (this.player?.baseSpeed) this.player.speed = this.player.baseSpeed * (this.player.speedMultiplierFromClass ?? 1); }, dur);
+        }
       }
     });
 
@@ -484,10 +523,12 @@ export class Game {
         });
         this.killCount++;
         this.player.addExp(e.expDrop);
-        this._spawnParticles(deadX, deadY, 10, 0x884400);
+        const burstCount = (e.type === 'fastRusher' || e.type === 'eliteEnemy') ? 16 : (e.type === 'boss' ? 24 : 10);
+        this._spawnParticles(deadX, deadY, burstCount, e.type === 'boss' ? 0xaa2222 : 0x884400);
         this._showExpFloat(deadX, deadY, e.expDrop);
-        if (e.type === 'eliteEnemy' && Math.random() < 0.15) {
-          this._spawnChest(deadX, deadY, Math.random() < 0.03);
+        const dropMult = this.dropRateMultiplier ?? 1;
+        if (e.type === 'eliteEnemy' && Math.random() < 0.15 * dropMult) {
+          this._spawnChest(deadX, deadY, Math.random() < 0.03 * dropMult);
         }
         this.enemyPool.release(e);
         this.enemies.splice(i, 1);
@@ -609,6 +650,16 @@ export class Game {
       const m = Math.floor(this.time / 60);
       const s = Math.floor(this.time % 60);
       timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    const waveNumEl = document.getElementById('wave-num');
+    const waveCountEl = document.getElementById('wave-count');
+    if (waveNumEl && waveCountEl) {
+      if (this.waveSystem?.isSurvivalMode?.()) {
+        waveNumEl.style.display = '';
+        waveCountEl.textContent = this.waveSystem.getCurrentWave();
+      } else {
+        waveNumEl.style.display = 'none';
+      }
     }
 
     if (this.hurtFlashEl) {

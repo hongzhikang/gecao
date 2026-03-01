@@ -23,6 +23,10 @@ export class Enemy {
     this.attackCooldown = config.attackCooldown ?? 0.6;
     this.lastAttackTime = -1e9;
     this.expDrop = config.expReward ?? config.exp ?? 5;
+    this.shieldHp = config.shieldAmount ?? 0;
+    this.slowOnHit = config.slowOnHit ?? false;
+    this.slowDuration = config.slowDuration ?? 1.5;
+    this.slowFactor = config.slowFactor ?? 0.5;
     this.sprite = null;
     this.mesh = new THREE.Group();
     this.game = null;
@@ -53,6 +57,7 @@ export class Enemy {
       this.hp = this.maxHp;
       this.damage *= m.enemyDamageMultiplier;
     }
+    this.shieldHp = this.config.shieldAmount ?? 0;
   }
 
   async init(position, assetLoader) {
@@ -95,6 +100,10 @@ export class Enemy {
     this.attackCooldown = config.attackCooldown ?? 0.6;
     this.lastAttackTime = -1e9;
     this.expDrop = config.expReward ?? config.exp ?? 5;
+    this.shieldHp = config.shieldAmount ?? 0;
+    this.slowOnHit = config.slowOnHit ?? false;
+    this.slowDuration = config.slowDuration ?? 1.5;
+    this.slowFactor = config.slowFactor ?? 0.5;
     this.position.x = position.x;
     this.position.y = position.y;
     this.velocity.x = 0;
@@ -151,8 +160,14 @@ export class Enemy {
   }
 
   takeDamage(amount, sourceX = null, sourceY = null, skipFloat = false) {
-    if (amount > 0 && !skipFloat && this.game?._showDamageFloat) this.game._showDamageFloat(this.position.x, this.position.y, amount, false);
-    this.hp = Math.max(0, this.hp - amount);
+    let d = amount;
+    if (this.shieldHp > 0 && d > 0) {
+      const absorb = Math.min(this.shieldHp, d);
+      this.shieldHp -= absorb;
+      d -= absorb;
+    }
+    if (d > 0 && !skipFloat && this.game?._showDamageFloat) this.game._showDamageFloat(this.position.x, this.position.y, d, false);
+    this.hp = Math.max(0, this.hp - d);
     this.hitFlashUntil = (this.game?.time ?? 0) + 0.1;
     if (sourceX != null && sourceY != null) {
       const dx = this.position.x - sourceX;

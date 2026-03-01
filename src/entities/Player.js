@@ -95,9 +95,16 @@ export class Player {
   takeDamage(amount) {
     if (this.game?.time < this.invincibleUntil) return;
     const mult = this.damageTakenMultiplier ?? 1;
-    this.hp = Math.max(0, this.hp - amount * mult);
+    let d = amount * mult;
+    const sh = this.shieldHp ?? 0;
+    if (sh > 0 && d > 0) {
+      const absorb = Math.min(sh, d);
+      this.shieldHp = sh - absorb;
+      d -= absorb;
+    }
+    if (d > 0) this.hp = Math.max(0, this.hp - d);
     this.invincibleUntil = (this.game?.time ?? 0) + this.invincibleDuration;
-    if (this.game?.onPlayerHit) this.game.onPlayerHit();
+    if (d > 0 && this.game?.onPlayerHit) this.game.onPlayerHit();
   }
 
   heal(amount) {

@@ -26,8 +26,19 @@ export class SpawnSystem {
   }
 
   _getEligibleTypes(elapsedTime) {
+    const waveSys = this.game?.waveSystem;
+    if (waveSys?.isSurvivalMode?.()) {
+      const w = waveSys.getCurrentWave();
+      const types = ['basicZombie'];
+      if (w >= 1) types.push('fastGhoul', 'fastRusher');
+      if (w >= 2) types.push('slowZombie');
+      if (w >= 3) types.push('shieldEnemy');
+      if (w >= 4) types.push('tankBrute');
+      if (w >= 5) types.push('eliteEnemy');
+      return types;
+    }
     const types = [];
-    if (elapsedTime >= 0) types.push('basicZombie');
+    if (elapsedTime >= 0) types.push('basicZombie', 'fastRusher', 'slowZombie', 'shieldEnemy');
     if (elapsedTime >= 30) types.push('fastGhoul');
     if (elapsedTime >= 90) types.push('tankBrute');
     if (elapsedTime >= 180) types.push('eliteEnemy');
@@ -36,6 +47,8 @@ export class SpawnSystem {
   }
 
   _pickType(elapsedTime) {
+    const waveSys = this.game?.waveSystem;
+    if (waveSys?.isSurvivalMode?.() && waveSys.isBetweenWaves) return null;
     const types = this._getEligibleTypes(elapsedTime);
     if (types.length === 0) return 'basicZombie';
     const eliteBonus = this.game?.eliteWeightBonus ?? 0;
@@ -64,7 +77,9 @@ export class SpawnSystem {
   }
 
   async trySpawn(time) {
-    const elapsed = time - (this.game.waveSystem?.waveStartTime ?? time);
+    const waveSys = this.game?.waveSystem;
+    if (waveSys?.isSurvivalMode?.() && waveSys.isBetweenWaves) return;
+    const elapsed = time - (waveSys?.waveStartTime ?? time);
     const rate = this._getSpawnRate(elapsed);
     const maxEnemies = this._getMaxEnemies(elapsed);
     if (this.game.enemies.length >= maxEnemies) return;
@@ -78,6 +93,7 @@ export class SpawnSystem {
     for (let i = 0; i < count; i++) {
       if (this.game.enemies.length >= maxEnemies) break;
       const type = this._pickType(elapsed);
+      if (!type) break;
       const pos = this._randomSpawnPosition();
       const enemy = await this.game.enemyPool.get(type, pos);
       this.game.scene.add(enemy.mesh);
