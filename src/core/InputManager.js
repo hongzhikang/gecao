@@ -1,6 +1,6 @@
 /**
- * InputManager.js - 键盘输入管理
- * WASD / 方向键
+ * InputManager.js - 键盘 + 移动端全屏触摸
+ * PC: WASD/方向键；移动端: 任意位置触摸滑动即移动，Y 轴与屏幕一致（滑上=角色向上）
  */
 
 export class InputManager {
@@ -9,9 +9,16 @@ export class InputManager {
     this.axis = { x: 0, y: 0 };
     this.joystickAxis = { x: 0, y: 0 };
     this._joyEl = null;
-    this._joyTouchId = null;
+    this._touchId = null;
+    this._touchContainer = null;
+    this._touchSetup = false;
+    this._touchStartX = 0;
+    this._touchStartY = 0;
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onKeyUp = this._onKeyUp.bind(this);
+    this._onTouchStart = this._onTouchStart.bind(this);
+    this._onTouchMove = this._onTouchMove.bind(this);
+    this._onTouchEnd = this._onTouchEnd.bind(this);
   }
 
   _onKeyDown(e) {
@@ -35,62 +42,52 @@ export class InputManager {
     this.axis.y = Math.max(-1, Math.min(1, y));
   }
 
-  _setupJoystick(container) {
-    if (!container || this._joyEl) return;
-    const el = document.createElement('div');
-    el.id = 'virtual-joystick';
-    el.style.cssText = 'position:absolute;left:24px;bottom:80px;width:100px;height:100px;border-radius:50%;background:rgba(80,80,80,0.5);border:3px solid rgba(255,255,255,0.3);touch-action:none;pointer-events:auto;z-index:15;';
-    const stick = document.createElement('div');
-    stick.style.cssText = 'position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(200,200,200,0.8);';
-    el.appendChild(stick);
-    const radius = 50;
-    el.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      this._joyTouchId = e.changedTouches[0].identifier;
-      const rect = el.getBoundingClientRect();
-      const touch = e.changedTouches[0];
-      let dx = (touch.clientX - rect.left - rect.width / 2) / radius;
-      let dy = (touch.clientY - rect.top - rect.height / 2) / radius;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      if (len > 1) { dx /= len; dy /= len; }
-      this.joystickAxis.x = dx;
-      this.joystickAxis.y = dy;
-      stick.style.transform = `translate(${dx * 30}px, ${dy * 30}px)`;
-    }, { passive: false });
-    el.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (!e.touches.length) return;
-      const touch = e.touches[0];
-      const rect = el.getBoundingClientRect();
-      let dx = (touch.clientX - rect.left - rect.width / 2) / radius;
-      let dy = (touch.clientY - rect.top - rect.height / 2) / radius;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      if (len > 1) { dx /= len; dy /= len; }
-      this.joystickAxis.x = dx;
-      this.joystickAxis.y = dy;
-      stick.style.transform = `translate(${dx * 30}px, ${dy * 30}px)`;
-    }, { passive: false });
-    el.addEventListener('touchend', () => {
-      this._joyTouchId = null;
+  /** 屏幕 Y 向下为正，游戏向上为正：滑动方向 = 移动方向，故取 -dy */
+  _onTouchStart(e) {
+    if (this._touchId != null) return;
+    const t = e.changedTouches[0];
+    this._touchId = t.identifier;
+    this._touchStartX = t.clientX;
+    this._touchStartY = t.clientY;
+  }
+
+  _onTouchMove(e) {
+    if (this._touchId == null) return;
+    const t = Array.from(e.touches).find((x) => x.identifier === this._touchId);
+    if (!t) return;
+    e.preventDefault();
+    const maxDist = 80;
+    let dx = (t.clientX - this._touchStartX) / maxDist;
+    let dy = (t.clientY - this._touchStartY) / maxDist;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (len > 1) { dx /= len; dy /= len; }
+    this.joystickAxis.x = dx;
+    this.joystickAxis.y = -dy;
+  }
+
+  _onTouchEnd(e) {
+    const t = Array.from(e.changedTouches).find((x) => x.identifier === this._touchId);
+    if (t) {
+      this._touchId = null;
       this.joystickAxis.x = 0;
       this.joystickAxis.y = 0;
-      stick.style.transform = 'translate(0,0)';
-    });
-    el.addEventListener('touchcancel', () => {
-      this._joyTouchId = null;
-      this.joystickAxis.x = 0;
-      this.joystickAxis.y = 0;
-      stick.style.transform = 'translate(0,0)';
-    });
-    container.style.position = container.style.position || 'relative';
-    container.appendChild(el);
-    this._joyEl = el;
+    }
+  }
+
+  _setupTouch(container) {
+    if (!container || this._touchSetup) return;
+    this._touchSetup = true;
+    this._touchContainer = container;
+    container.addEventListener('touchstart', this._onTouchStart, { passive: true });
+    container.addEventListener('touchmove', this._onTouchMove, { passive: false });
+    container.addEventListener('touchend', this._onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', this._onTouchEnd, { passive: true });
   }
 
   start(container) {
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
-    if (container && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) this._setupJoystick(container);
+    if (container && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) this._setupTouch(container);
   }
 
   stop() {
@@ -98,6 +95,14 @@ export class InputManager {
     window.removeEventListener('keyup', this._onKeyUp);
     if (this._joyEl?.parentNode) this._joyEl.parentNode.removeChild(this._joyEl);
     this._joyEl = null;
+    if (this._touchContainer) {
+      this._touchContainer.removeEventListener('touchstart', this._onTouchStart);
+      this._touchContainer.removeEventListener('touchmove', this._onTouchMove);
+      this._touchContainer.removeEventListener('touchend', this._onTouchEnd);
+      this._touchContainer.removeEventListener('touchcancel', this._onTouchEnd);
+    }
+    this._touchContainer = null;
+    this._touchId = null;
     this.keys = {};
     this.axis = { x: 0, y: 0 };
     this.joystickAxis = { x: 0, y: 0 };
