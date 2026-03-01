@@ -16,8 +16,12 @@ import { Enemy } from './entities/Enemy.js';
 import { Boss } from './entities/Boss.js';
 import { SpawnSystem } from './systems/SpawnSystem.js';
 import { WaveSystem } from './systems/WaveSystem.js';
+import { EnemyPool } from './systems/EnemyPool.js';
 import { UpgradeSystem } from './systems/UpgradeSystem.js';
+import { DifficultyConfig } from './config/DifficultyConfig.js';
+import { AudioManager } from './core/AudioManager.js';
 import { ParallaxBackground } from './world/ParallaxBackground.js';
+import { Chest } from './entities/Chest.js';
 import { PoisonPlant, FireWolf, StoneGolem, ThunderBird } from './entities/summons/index.js';
 import { Warrior } from './classes/Warrior.js';
 import { Mage } from './classes/Mage.js';
@@ -48,6 +52,7 @@ export class Game {
 
     this.assetLoader = new AssetLoader();
     this.inputManager = new InputManager();
+    this.audio = new AudioManager();
     this.EnemyClass = Enemy;
     this.BossClass = Boss;
 
@@ -79,16 +84,39 @@ export class Game {
     this.composer.addPass(bloomPass);
     this.bloomPass = bloomPass;
 
+    const difficultyId = options.difficulty === 'nightmare' ? 'hell' : (options.difficulty ?? 'normal');
+    const difficulty = DifficultyConfig[difficultyId] ?? DifficultyConfig.normal;
+    this.difficulty = difficultyId;
+    this.difficultyMultipliers = {
+      enemyHealthMultiplier: difficulty.enemyHealthMultiplier,
+      enemyDamageMultiplier: difficulty.enemyDamageMultiplier,
+    };
+    this.spawnRateMultiplier = difficulty.spawnRateMultiplier;
+    this.enemyCountMultiplier = difficulty.enemyCountMultiplier ?? 1;
+    this.expGainMultiplier = difficulty.expGainMultiplier;
+    this.eliteWeightBonus = difficulty.eliteWeightBonus ?? 0;
+
     this.spawnSystem = new SpawnSystem(this);
     this.waveSystem = new WaveSystem(this);
+    this.enemyPool = new EnemyPool(this);
     this.upgradeSystem = new UpgradeSystem(this);
     this.SUMMON_CLASS_MAP = SUMMON_CLASS_MAP;
 
+    this.killCount = 0;
+    this.gameOver = false;
+    this.onGameOver = null;
+    this.chests = [];
+    this.baseZoom = 280;
     this.bgMesh = null;
     this.parallaxBackground = null;
     this.playerShadow = null;
     this.vignetteEl = null;
-    this._registerEnemies();
+    this.hurtFlashEl = null;
+    this.floatTextContainer = null;
+    this.floatTexts = [];
+    this.hurtFlashUntil = 0;
+    this.levelUpSlowMotionUntil = 0;
+    this.pendingLevelUpPlayer = null;
     this._bindUI();
   }
 
@@ -180,24 +208,16 @@ export class Game {
     this.scene.add(this.player.mesh);
   }
 
-  _registerEnemies() {
-    this.spawnSystem.registerEnemyType('default', {
-      speed: 55,
-      radius: 20,
-      hp: 25,
-      damage: 6,
-      expDrop: 4,
-      spritePath: '/assets/enemies/zombie.png',
-    });
-    this.spawnSystem.registerEnemyType('boss', {
-      Boss: true,
-      speed: 38,
-      radius: 48,
-      hp: 220,
-      damage: 14,
-      expDrop: 55,
-      spritePath: '/assets/boss/demon_boss.png',
-    });
+  _setupHurtFlash() {
+    this.hurtFlashEl = document.createElement('div');
+    this.hurtFlashEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:rgba(200,0,0,0.4);opacity:0;transition:opacity 0.06s;';
+    this.container.appendChild(this.hurtFlashEl);
+  }
+
+  _setupFloatTexts() {
+    this.floatTextContainer = document.createElement('div');
+    this.floatTextContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;';
+    this.container.appendChild(this.floatTextContainer);
   }
 
   _bindUI() {
@@ -213,6 +233,12 @@ export class Game {
       const dy = e.position.y - y;
       return dx * dx + dy * dy <= r * r;
     });
+  }
+
+  /** 暴击：10% 概率 1.5 倍伤害 */
+  applyCrit(damage) {
+    const isCrit = Math.random() < 0.1;
+    return { damage: isCrit ? damage * 1.5 : damage, isCrit };
   }
 
   getSummons() {
@@ -252,11 +278,13 @@ export class Game {
     const list = this.getEnemiesInRadius(x, y, radius);
     list.forEach((e) => {
       if (e.isAlive()) {
-        e.takeDamage(damage);
+        const { damage: dmg, isCrit } = this.applyCrit(damage);
+        if (this._showDamageFloat) this._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
+        e.takeDamage(dmg, x, y, true);
         if (slowDuration > 0 && e.speed != null) {
-          const orig = e.config?.speed ?? e.speed;
-          e.speed = orig * (slowFactor ?? 0.5);
-          setTimeout(() => { e.speed = orig; }, slowDuration * 1000);
+          const base = (e.config?.speed ?? 1) * 55;
+          e.speed = base * (slowFactor ?? 0.5);
+          setTimeout(() => { e.speed = base; }, slowDuration * 1000);
         }
       }
     });
@@ -285,12 +313,13 @@ export class Game {
   }
 
   onPlayerHit() {
-    this.screenShake = 0.2;
+    this.screenShake = 0.25;
+    this.hurtFlashUntil = this.time + 0.35;
   }
 
   onLevelUp(player) {
-    this.paused = true;
-    this.upgradeSystem.show(player);
+    this.levelUpSlowMotionUntil = performance.now() / 1000 + 0.3;
+    this.pendingLevelUpPlayer = player;
   }
 
   async start() {
@@ -298,16 +327,31 @@ export class Game {
     await this._setupBackground();
     this._setupParticleSystem();
     await this._setupPlayer();
-    this.inputManager.start();
+    this._setupHurtFlash();
+    this._setupFloatTexts();
+    this.inputManager.start(this.container);
     this.player.classInstance?.setGame(this);
     this.waveSystem.waveStartTime = this.time;
-    this.waveSystem.lastSpawnTime = this.time;
-    await this.spawnSystem.spawnWave(this.waveSystem.getWaveConfig());
+    this.spawnSystem.lastSpawnTime = this.time;
+    const waveConfig = { enemies: [{ type: 'basicZombie', count: 6 }] };
+    await this.spawnSystem.spawnWave(waveConfig);
   }
 
   update(dt) {
+    const now = performance.now() / 1000;
+    if (this.levelUpSlowMotionUntil && now >= this.levelUpSlowMotionUntil) {
+      this.levelUpSlowMotionUntil = null;
+      this.paused = true;
+      if (this.pendingLevelUpPlayer) {
+        this.upgradeSystem.show(this.pendingLevelUpPlayer);
+        this.pendingLevelUpPlayer = null;
+      }
+    }
     if (this.paused) return;
 
+    if (this.levelUpSlowMotionUntil && now < this.levelUpSlowMotionUntil) {
+      dt *= 0.3;
+    }
     this.time += dt;
 
     this.player.update(dt, this.inputManager);
@@ -341,7 +385,9 @@ export class Game {
       hitList.forEach((e) => {
         if (!e.isAlive() || p.hit.has(e)) return;
         p.hit.add(e);
-        e.takeDamage(p.damage);
+        const { damage: dmg, isCrit } = this.applyCrit(p.damage);
+        if (this._showDamageFloat) this._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
+        e.takeDamage(dmg, p.x, p.y, true);
         if (p.explodeRadius > 0) {
           this._explodeAt(p.x, p.y, p.explodeRadius, 0, p.slowDuration, p.slowFactor);
           p.life = 0;
@@ -374,10 +420,16 @@ export class Game {
     this._updateParticlePoints();
 
     this._collisionUpdate();
-    this.waveSystem.update(this.time);
+    if (!this.player.isAlive() && !this.gameOver) {
+      this.gameOver = true;
+      this.paused = true;
+      this.onGameOver?.();
+    }
+    this._chestCollision();
+    this.spawnSystem.trySpawn(this.time);
     this._cameraUpdate(dt);
     this._backgroundUpdate();
-    this._updateUI();
+    this._updateUI(dt);
   }
 
   _updateParticlePoints() {
@@ -398,24 +450,95 @@ export class Game {
     const pr = this.player.getCollisionRadius();
     const px = this.player.position.x;
     const py = this.player.position.y;
+    const gameTime = this.time;
 
     this.enemies.forEach((e) => {
       if (!e.isAlive()) return;
       const er = e.getCollisionRadius();
-      if (CollisionSystem.circleCircle(px, py, pr, e.position.x, e.position.y, er)) {
-        this.player.takeDamage(e.damage * 0.016);
+      if (!CollisionSystem.circleCircle(px, py, pr, e.position.x, e.position.y, er)) return;
+      const cooldown = e.attackCooldown ?? 0.6;
+      if (gameTime >= (e.lastAttackTime ?? -1e9) + cooldown) {
+        this.player.takeDamage(e.damage);
+        e.lastAttackTime = gameTime;
       }
     });
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (!e.isAlive()) {
+        const deadX = e.position.x;
+        const deadY = e.position.y;
+        const knockDist = 45;
+        this.enemies.forEach((other) => {
+          if (other === e || !other.isAlive()) return;
+          const dx = other.position.x - deadX;
+          const dy = other.position.y - deadY;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > 0 && d2 < knockDist * knockDist) {
+            const d = Math.sqrt(d2);
+            const push = (knockDist - d) / d;
+            other.position.x += (dx / d) * push * 25;
+            other.position.y += (dy / d) * push * 25;
+            other.mesh.position.set(other.position.x, other.position.y, 0);
+          }
+        });
+        this.killCount++;
         this.player.addExp(e.expDrop);
-        this.scene.remove(e.mesh);
-        e.dispose();
+        this._spawnParticles(deadX, deadY, 10, 0x884400);
+        this._showExpFloat(deadX, deadY, e.expDrop);
+        if (e.type === 'eliteEnemy' && Math.random() < 0.15) {
+          this._spawnChest(deadX, deadY, Math.random() < 0.03);
+        }
+        this.enemyPool.release(e);
         this.enemies.splice(i, 1);
       }
     }
+  }
+
+  _spawnChest(x, y, isGolden) {
+    const chest = new Chest(x, y, isGolden);
+    chest.createMesh();
+    this.scene.add(chest.mesh);
+    this.chests.push(chest);
+  }
+
+  _chestCollision() {
+    const pr = this.player.getCollisionRadius();
+    const px = this.player.position.x;
+    const py = this.player.position.y;
+    for (let i = this.chests.length - 1; i >= 0; i--) {
+      const c = this.chests[i];
+      const dx = c.position.x - px;
+      const dy = c.position.y - py;
+      const d2 = dx * dx + dy * dy;
+      const r = c.getCollisionRadius() + pr;
+      if (d2 <= r * r) {
+        this.scene.remove(c.mesh);
+        c.dispose();
+        this.chests.splice(i, 1);
+        this.paused = true;
+        this.upgradeSystem.showChestReward(this.player, c.isGolden, () => {
+          this.paused = false;
+        });
+      }
+    }
+  }
+
+  _showExpFloat(wx, wy, exp) {
+    const el = document.createElement('div');
+    el.textContent = '+' + exp;
+    el.style.cssText = 'position:absolute;color:#8f8;font-weight:bold;font-size:18px;text-shadow:0 0 4px #000;white-space:nowrap;';
+    this.floatTextContainer.appendChild(el);
+    this.floatTexts.push({ wx, wy, life: 0.9, el });
+  }
+
+  _showDamageFloat(wx, wy, amount, isCrit = false) {
+    const el = document.createElement('div');
+    el.textContent = isCrit ? '暴击! ' + Math.floor(amount) : '-' + Math.floor(amount);
+    el.style.cssText = 'position:absolute;font-weight:bold;font-size:' + (isCrit ? 18 : 16) + 'px;text-shadow:0 0 4px #000;white-space:nowrap;';
+    el.style.color = isCrit ? '#ffaa00' : '#f88';
+    this.floatTextContainer.appendChild(el);
+    this.floatTexts.push({ wx, wy, life: isCrit ? 0.7 : 0.5, el });
   }
 
   _cameraUpdate(dt) {
@@ -428,7 +551,7 @@ export class Game {
     const subtleShakeX = Math.sin(this.time * 8) * 1.2;
     const subtleShakeY = Math.cos(this.time * 6) * 1.2;
 
-    const zoom = 280;
+    const zoom = this.baseZoom + this.time * 0.04;
     const halfW = (this.container.clientWidth / this.container.clientHeight) * zoom;
     this.camera.left = -halfW;
     this.camera.right = halfW;
@@ -472,13 +595,43 @@ export class Game {
     });
   }
 
-  _updateUI() {
+  _updateUI(dt) {
     const hpFill = document.getElementById('hp-fill');
     const xpFill = document.getElementById('xp-fill');
     const levelNum = document.getElementById('level-num');
+    const killEl = document.getElementById('kill-count');
+    const timerEl = document.getElementById('survival-timer');
     if (hpFill) hpFill.style.width = `${(this.player.hp / this.player.maxHp) * 100}%`;
     if (xpFill) xpFill.style.width = `${(this.player.exp / this.player.expToNext) * 100}%`;
     if (levelNum) levelNum.textContent = this.player.level;
+    if (killEl) killEl.textContent = this.killCount;
+    if (timerEl) {
+      const m = Math.floor(this.time / 60);
+      const s = Math.floor(this.time % 60);
+      timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    if (this.hurtFlashEl) {
+      this.hurtFlashEl.style.opacity = this.time < this.hurtFlashUntil ? 1 : 0;
+    }
+
+    const v = new THREE.Vector3();
+    for (let i = this.floatTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatTexts[i];
+      ft.life -= dt;
+      if (ft.life <= 0) {
+        ft.el.remove();
+        this.floatTexts.splice(i, 1);
+        continue;
+      }
+      v.set(ft.wx, ft.wy, 0);
+      v.project(this.camera);
+      const cx = (v.x * 0.5 + 0.5) * this.container.clientWidth;
+      const cy = (-v.y * 0.5 + 0.5) * this.container.clientHeight;
+      ft.el.style.left = cx + 'px';
+      ft.el.style.top = cy + 'px';
+      ft.el.style.opacity = Math.max(0, ft.life / 0.9);
+    }
   }
 
   hideUpgradePanel() {
@@ -507,7 +660,13 @@ export class Game {
 
   dispose() {
     this.stop();
+    this.audio?.stop();
     if (this.vignetteEl?.parentNode) this.vignetteEl.parentNode.removeChild(this.vignetteEl);
+    if (this.hurtFlashEl?.parentNode) this.hurtFlashEl.parentNode.removeChild(this.hurtFlashEl);
+    if (this.floatTextContainer?.parentNode) this.floatTextContainer.parentNode.removeChild(this.floatTextContainer);
+    if (this.renderer?.domElement?.parentNode) this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+    this.chests.forEach((c) => { this.scene.remove(c.mesh); c.dispose(); });
+    this.chests = [];
     this.parallaxBackground?.dispose();
     this.summons.forEach((s) => s.dispose?.());
     this.assetLoader.dispose();

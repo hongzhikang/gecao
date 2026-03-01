@@ -7,18 +7,8 @@ import { Enemy } from './Enemy.js';
 import * as THREE from 'three';
 
 export class Boss extends Enemy {
-  constructor(config = {}) {
-    super({
-      speed: config.speed ?? 40,
-      radius: config.radius ?? 48,
-      hp: config.hp ?? 200,
-      damage: config.damage ?? 15,
-      expDrop: config.expDrop ?? 50,
-      spritePath: config.spritePath ?? '/assets/boss/demon_boss.png',
-      attackFrameBase: '/assets/boss/boss_attack_frame',
-      attackFrameCount: 6,
-      ...config,
-    });
+  constructor(configOverrides = {}) {
+    super('boss', configOverrides);
     this.isBoss = true;
   }
 

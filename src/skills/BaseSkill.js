@@ -21,7 +21,8 @@ export class BaseSkill {
 
   getCooldownTotal() {
     const perLevel = this.config.cooldownPerLevel ?? 0;
-    return Math.max(0.1, this.cooldown - (this.level - 1) * perLevel);
+    const base = this.cooldown - (this.level - 1) * perLevel;
+    return Math.max(0.1, base / (this.owner?.attackSpeedMultiplier ?? 1));
   }
 
   canCast() {

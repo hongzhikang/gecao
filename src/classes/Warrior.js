@@ -8,7 +8,7 @@ import { MeleeSkill } from '../skills/MeleeSkill.js';
 export class Warrior {
   constructor(skillConfigs = {}) {
     this.spritePath = '/assets/characters/warrior_idle.png';
-    this.attackSpeedMultiplier = 1.4;
+    this.attackSpeedMultiplier = 1.0; // 中等攻速
 
     const defaultMelee = {
       id: 'warrior_slash',
@@ -17,7 +17,7 @@ export class Warrior {
       cooldownPerLevel: -0.05,
       radius: 70,
       radiusPerLevel: 8,
-      damage: 18,
+      damage: 20,
       damagePerLevel: 4,
       maxLevel: 5,
     };
@@ -41,7 +41,12 @@ export class Warrior {
   }
 
   applyToPlayer(player) {
-    player.speed *= this.attackSpeedMultiplier;
+    player.baseMaxHp = 120;
+    player.maxHp = 120;
+    player.hp = 120;
+    player.damageTakenMultiplier = 0.7; // 防御最高
+    player.speedMultiplierFromClass = this.attackSpeedMultiplier;
+    player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
     this.skills.forEach((s) => s.setOwner(player));
   }
 

@@ -29,17 +29,9 @@ export class WaveSystem {
 
   update(time) {
     if (!this.game.player?.isAlive()) return;
-
     if (time - this.waveStartTime >= this.waveDuration) {
       this.wave++;
       this.waveStartTime = time;
-      this.game.spawnSystem.spawnWave(this.getWaveConfig());
-    }
-
-    if (time - this.lastSpawnTime >= this.spawnInterval) {
-      this.lastSpawnTime = time;
-      const cfg = this.getWaveConfig();
-      this.game.spawnSystem.spawn('default');
     }
   }
 

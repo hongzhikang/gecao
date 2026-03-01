@@ -34,7 +34,7 @@ export class ProjectileSkill extends BaseSkill {
       vx: dir.x * this.getValue('speed', 400),
       vy: dir.y * this.getValue('speed', 400),
       radius: this.radius,
-      damage: this.getValue('damage', 20),
+      damage: this.getValue('damage', 20) * (this.owner?.damageMultiplier ?? 1),
       explodeRadius: this.getValue('explodeRadius', 0),
       slowDuration: this.slowDuration,
       slowFactor: this.slowFactor,

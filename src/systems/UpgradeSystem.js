@@ -162,4 +162,63 @@ export class UpgradeSystem {
   hide() {
     if (this.panel) this.panel.classList.remove('visible');
   }
+
+  _treasurePool(player) {
+    return [
+      { name: '+Attack', desc: 'Damage +10%', apply: () => { player.damageMultiplier = (player.damageMultiplier || 1) * 1.1; } },
+      { name: '+Attack Speed', desc: 'Attack speed +5%', apply: () => { player.attackSpeedMultiplier = (player.attackSpeedMultiplier || 1) * 1.05; } },
+      { name: '+Max HP', desc: 'Max HP +20', apply: () => { player.baseMaxHp += 20; player.maxHp += 20; player.hp = Math.min(player.hp + 20, player.maxHp); } },
+      { name: '+Move Speed', desc: 'Move speed +5%', apply: () => { player.baseSpeed *= 1.05; player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1); } },
+      { name: '+Area Damage', desc: 'Skill area +15%', apply: () => { player.areaDamageMultiplier = (player.areaDamageMultiplier || 1) * 1.15; } },
+      { name: '+Lifesteal', desc: 'Heal 2% of damage dealt', apply: () => { player.lifestealPercent = (player.lifestealPercent || 0) + 2; } },
+    ];
+  }
+
+  showChestReward(player, isGolden, onClose) {
+    const pool = this._treasurePool(player);
+    const opts = this._shuffle([...pool]).slice(0, 3);
+    const panel = document.getElementById('chest-reward-panel');
+    const title = document.getElementById('chest-reward-title');
+    const choices = document.getElementById('chest-reward-choices');
+    if (!panel || !choices) {
+      if (onClose) onClose();
+      return;
+    }
+    choices.innerHTML = '';
+    if (isGolden) {
+      if (title) title.textContent = 'Golden Chest!';
+      opts.forEach((opt) => opt.apply());
+      const msg = document.createElement('p');
+      msg.style.cssText = 'color:#ffd700;margin:12px 0;';
+      msg.textContent = 'You received: ' + opts.map((o) => o.name).join(', ');
+      choices.appendChild(msg);
+      const btn = document.createElement('div');
+      btn.className = 'choice';
+      btn.textContent = 'Continue';
+      btn.onclick = () => {
+        this.hideChestReward();
+        if (onClose) onClose();
+      };
+      choices.appendChild(btn);
+    } else {
+      if (title) title.textContent = 'Chest opened! Pick one';
+      opts.forEach((opt) => {
+        const div = document.createElement('div');
+        div.className = 'choice';
+        div.innerHTML = `<strong>${opt.name}</strong><br><small>${opt.desc}</small>`;
+        div.onclick = () => {
+          opt.apply();
+          this.hideChestReward();
+          if (onClose) onClose();
+        };
+        choices.appendChild(div);
+      });
+    }
+    panel.classList.add('visible');
+  }
+
+  hideChestReward() {
+    const panel = document.getElementById('chest-reward-panel');
+    if (panel) panel.classList.remove('visible');
+  }
 }

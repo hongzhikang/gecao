@@ -10,14 +10,20 @@ export class Player {
   constructor(options = {}) {
     this.position = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
-    this.speed = options.speed ?? 180;
+    this.speed = this.baseSpeed ?? 180;
     this.radius = options.radius ?? 24;
 
-    this.maxHp = options.maxHp ?? 100;
+    this.baseMaxHp = options.maxHp ?? 100;
+    this.baseSpeed = options.speed ?? 180;
+    this.maxHp = this.baseMaxHp;
     this.hp = this.maxHp;
     this.exp = 0;
-    this.expToNext = options.expToNext ?? 10;
     this.level = 1;
+    this.expToNext = this._nextLevelExp(1);
+    this.damageMultiplier = 1;
+    this.attackSpeedMultiplier = 1;
+    this.speedMultiplierFromClass = 1;
+    this.damageTakenMultiplier = 1; // 战士 0.7 = 高防御
 
     this.sprite = null;
     this.mesh = new THREE.Group();
@@ -25,7 +31,7 @@ export class Player {
     this.game = null;
 
     this.invincibleUntil = 0;
-    this.invincibleDuration = 0.5;
+    this.invincibleDuration = 0.08;
 
     this.idleTexture = null;
     this.attackFrames = [];
@@ -88,7 +94,8 @@ export class Player {
 
   takeDamage(amount) {
     if (this.game?.time < this.invincibleUntil) return;
-    this.hp = Math.max(0, this.hp - amount);
+    const mult = this.damageTakenMultiplier ?? 1;
+    this.hp = Math.max(0, this.hp - amount * mult);
     this.invincibleUntil = (this.game?.time ?? 0) + this.invincibleDuration;
     if (this.game?.onPlayerHit) this.game.onPlayerHit();
   }
@@ -97,12 +104,28 @@ export class Player {
     this.hp = Math.min(this.maxHp, this.hp + amount);
   }
 
+  _nextLevelExp(level) {
+    return Math.max(1, Math.floor(20 * Math.pow(level, 1.5)));
+  }
+
+  _applyLevelScaling() {
+    const L = this.level;
+    this.maxHp = Math.floor(this.baseMaxHp * (1 + (L - 1) * 0.08));
+    this.hp = Math.min(this.hp, this.maxHp);
+    this.speed = this.baseSpeed * (1 + (L - 1) * 0.02) * (this.speedMultiplierFromClass ?? 1);
+    this.damageMultiplier = 1 + (L - 1) * 0.05;
+    this.attackSpeedMultiplier = 1 + (L - 1) * 0.02;
+  }
+
   addExp(value) {
-    this.exp += value;
+    const mult = this.game?.expGainMultiplier ?? 1;
+    this.exp += value * mult;
     while (this.exp >= this.expToNext) {
       this.exp -= this.expToNext;
       this.level++;
-      this.expToNext = Math.floor(this.expToNext * 1.2);
+      this.expToNext = this._nextLevelExp(this.level);
+      this._applyLevelScaling();
+      this.hp = Math.min(this.maxHp, this.hp + Math.floor(this.maxHp * 0.2));
       if (this.game?.onLevelUp) this.game.onLevelUp(this);
     }
   }

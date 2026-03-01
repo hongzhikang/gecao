@@ -22,7 +22,8 @@ export class MeleeSkill extends BaseSkill {
     if (!this.owner || !this.game) return;
     this.owner.playAttackAnimation?.();
     const r = this.getValue('radius', 80);
-    const dmg = this.getValue('damage', 15);
+    const rawDmg = this.getValue('damage', 15) * (this.owner?.damageMultiplier ?? 1);
+    const { damage: dmg, isCrit } = this.game.applyCrit?.(rawDmg) ?? { damage: rawDmg, isCrit: false };
     const px = this.owner.position.x;
     const py = this.owner.position.y;
 
@@ -32,7 +33,10 @@ export class MeleeSkill extends BaseSkill {
 
     const enemies = this.game.getEnemiesInRadius?.(px, py, r) ?? [];
     enemies.forEach((e) => {
-      if (e.isAlive()) e.takeDamage(dmg);
+      if (e.isAlive()) {
+        if (this.game._showDamageFloat) this.game._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
+        e.takeDamage(dmg, px, py, true);
+      }
     });
   }
 }

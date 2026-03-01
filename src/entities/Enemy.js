@@ -1,22 +1,28 @@
 /**
  * Enemy.js - 普通敌人
- * 自动追踪玩家、血量、经验掉落、攻击动画
+ * 从 EnemyConfig 读取数值，支持受击闪白、击退、死亡粒子
  */
 
 import * as THREE from 'three';
 import { SpriteAnimator } from '../utils/SpriteAnimator.js';
+import { getConfig, BASE_ENEMY_SPEED } from '../config/EnemyConfig.js';
 
 export class Enemy {
-  constructor(config = {}) {
+  constructor(type = 'basicZombie', configOverrides = {}) {
+    const config = { ...getConfig(type), ...configOverrides };
+    this.type = type;
     this.config = config;
     this.position = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
-    this.speed = config.speed ?? 60;
+    const moveSpeed = config.moveSpeed ?? config.speed ?? 1;
+    this.speed = moveSpeed * BASE_ENEMY_SPEED;
     this.radius = config.radius ?? 20;
-    this.hp = config.hp ?? 20;
-    this.maxHp = this.hp;
-    this.damage = config.damage ?? 5;
-    this.expDrop = config.expDrop ?? 3;
+    this.maxHp = config.maxHealth ?? config.maxHP ?? 40;
+    this.hp = this.maxHp;
+    this.damage = config.attackDamage ?? config.attack ?? 5;
+    this.attackCooldown = config.attackCooldown ?? 0.6;
+    this.lastAttackTime = -1e9;
+    this.expDrop = config.expReward ?? config.exp ?? 5;
     this.sprite = null;
     this.mesh = new THREE.Group();
     this.game = null;
@@ -26,17 +32,27 @@ export class Enemy {
     this.animator = null;
     this.playingAttack = false;
     this.attackAnimCooldown = 0;
+    this.attackInterval = 0.6;
+    this.hitFlashUntil = 0;
+    this.knockbackUntil = 0;
+    this.knockbackVx = 0;
+    this.knockbackVy = 0;
   }
 
   _getAttackFramePaths() {
     const base = this.config.attackFrameBase ?? '/assets/enemies/zombie_attack_frame';
     const count = this.config.attackFrameCount ?? 4;
-    const ext = this.config.attackFrameExt ?? '';
-    return Array.from({ length: count }, (_, i) => `${base}${i + 1}${ext}.png`);
+    return Array.from({ length: count }, (_, i) => `${base}${i + 1}.png`);
   }
 
   setGame(game) {
     this.game = game;
+    const m = game?.difficultyMultipliers;
+    if (m) {
+      this.maxHp = Math.max(1, Math.floor(this.maxHp * m.enemyHealthMultiplier));
+      this.hp = this.maxHp;
+      this.damage *= m.enemyDamageMultiplier;
+    }
   }
 
   async init(position, assetLoader) {
@@ -64,6 +80,35 @@ export class Enemy {
     this.animator = new SpriteAnimator(this.attackFrames, 0.1);
     this._createHealthBar();
     return this.mesh;
+  }
+
+  reset(type, position) {
+    this.type = type;
+    const config = { ...getConfig(type) };
+    this.config = config;
+    const moveSpeed = config.moveSpeed ?? config.speed ?? 1;
+    this.speed = moveSpeed * BASE_ENEMY_SPEED;
+    this.radius = config.radius ?? 20;
+    this.maxHp = config.maxHealth ?? config.maxHP ?? 40;
+    this.hp = this.maxHp;
+    this.damage = config.attackDamage ?? config.attack ?? 5;
+    this.attackCooldown = config.attackCooldown ?? 0.6;
+    this.lastAttackTime = -1e9;
+    this.expDrop = config.expReward ?? config.exp ?? 5;
+    this.position.x = position.x;
+    this.position.y = position.y;
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    this.hitFlashUntil = 0;
+    this.knockbackUntil = 0;
+    const m = this.game?.difficultyMultipliers;
+    if (m) {
+      this.maxHp = Math.max(1, Math.floor(this.maxHp * m.enemyHealthMultiplier));
+      this.hp = this.maxHp;
+      this.damage *= m.enemyDamageMultiplier;
+    }
+    this.mesh.position.set(this.position.x, this.position.y, 0);
+    this._updateHealthBar();
   }
 
   playAttackAnimation() {
@@ -99,18 +144,44 @@ export class Enemy {
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#333';
     ctx.fillRect(0, 0, 32, 4);
-    const pct = this.hp / this.maxHp;
+    const pct = this.maxHp > 0 ? this.hp / this.maxHp : 0;
     ctx.fillStyle = pct > 0.5 ? '#0f0' : pct > 0.25 ? '#ff0' : '#f00';
     ctx.fillRect(0, 0, 32 * pct, 4);
     this.healthBar.material.map.needsUpdate = true;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, sourceX = null, sourceY = null, skipFloat = false) {
+    if (amount > 0 && !skipFloat && this.game?._showDamageFloat) this.game._showDamageFloat(this.position.x, this.position.y, amount, false);
     this.hp = Math.max(0, this.hp - amount);
+    this.hitFlashUntil = (this.game?.time ?? 0) + 0.1;
+    if (sourceX != null && sourceY != null) {
+      const dx = this.position.x - sourceX;
+      const dy = this.position.y - sourceY;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const knock = 180;
+      this.knockbackVx = (dx / d) * knock;
+      this.knockbackVy = (dy / d) * knock;
+      this.knockbackUntil = (this.game?.time ?? 0) + 0.1;
+    }
     this._updateHealthBar();
   }
 
   update(dt) {
+    const gameTime = this.game?.time ?? 0;
+    if (this.hitFlashUntil > gameTime && this.sprite?.material?.color) {
+      this.sprite.material.color.setHex(0xff6666);
+    } else if (this.sprite?.material?.color) {
+      this.sprite.material.color.setHex(0xffffff);
+    }
+
+    if (this.knockbackUntil > gameTime) {
+      this.position.x += this.knockbackVx * dt;
+      this.position.y += this.knockbackVy * dt;
+      this.mesh.position.set(this.position.x, this.position.y, 0);
+      this._updateHealthBar();
+      return;
+    }
+
     const player = this.game?.player;
     if (!player || !player.isAlive()) return;
 
@@ -125,10 +196,11 @@ export class Enemy {
 
     this.mesh.position.set(this.position.x, this.position.y, 0);
 
+    const interval = this.attackInterval / (player.attackSpeedMultiplier ?? 1);
     this.attackAnimCooldown -= dt;
     if (dist < 40 && !this.playingAttack && this.attackAnimCooldown <= 0) {
       this.playAttackAnimation();
-      this.attackAnimCooldown = 0.6;
+      this.attackAnimCooldown = interval;
     }
     if (this.animator && this.playingAttack) {
       this.animator.update(dt, this.sprite.material);

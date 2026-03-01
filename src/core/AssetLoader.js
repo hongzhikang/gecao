@@ -26,9 +26,9 @@ export class AssetLoader {
         canvas.width = 64;
         canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#333';
-        ctx.fillRect(0, 0, 64, 64);
+        ctx.clearRect(0, 0, 64, 64);
         const tex = new THREE.CanvasTexture(canvas);
+        tex.transparent = true;
         this.textures.set(path, tex);
         return tex;
       });
@@ -49,22 +49,30 @@ export class AssetLoader {
     const { width, height, ...rest } = opts;
     const map = this.getTexture(path);
     if (!map) {
-      this.loadTexture(path).then(() => {});
       const canvas = document.createElement('canvas');
       canvas.width = width || 64;
       canvas.height = height || 64;
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#333';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const tex = new THREE.CanvasTexture(canvas);
-      return new THREE.SpriteMaterial({
-        map: tex,
+      const placeTex = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({
+        map: placeTex,
         transparent: true,
-        alphaTest: 0.05,
+        opacity: 0,
+        alphaTest: 0.99,
         depthTest: true,
         depthWrite: false,
         ...rest,
       });
+      // 贴图加载完成后替换占位图，灰色方块会变成正常精灵
+      this.loadTexture(path).then((tex) => {
+        if (material.map === placeTex) {
+          material.map = tex;
+          placeTex.dispose();
+        }
+      });
+      return material;
     }
     return new THREE.SpriteMaterial({
       map,

@@ -25,7 +25,8 @@ export class SummonSkill extends BaseSkill {
   async _doCast() {
     if (!this.owner || !this.game) return;
     this.owner.playAttackAnimation?.();
-    const count = this.getValue('summonCount', 1);
+    const maxCap = this.config.maxSummonCount ?? 5;
+    const count = Math.min(maxCap, this.getValue('summonCount', 2));
     const unlocked = this.owner.classInstance?.unlockedSummonTypes ?? ['poison_plant'];
     const types = unlocked.length ? unlocked : ['poison_plant'];
 
@@ -38,7 +39,7 @@ export class SummonSkill extends BaseSkill {
 
       const config = {
         hp: this.getValue('summonHp', 35),
-        damage: this.getValue('summonDamage', 8),
+        damage: this.getValue('summonDamage', 8) * (this.owner?.damageMultiplier ?? 1),
         duration: this.getValue('summonDuration', 18),
         attackRange: this.getValue('attackRange', 55),
         attackCooldown: this.attackCooldown,

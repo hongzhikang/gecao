@@ -12,11 +12,11 @@ export class Mage {
     const defaultOrb = {
       id: 'mage_orb',
       name: '魔法弹',
-      cooldown: 0.8,
-      cooldownPerLevel: -0.06,
+      cooldown: 0.7,
+      cooldownPerLevel: -0.05,
       speed: 380,
-      damage: 22,
-      damagePerLevel: 5,
+      damage: 16,
+      damagePerLevel: 4,
       explodeRadius: 50,
       explodeRadiusPerLevel: 10,
       slowDuration: 1.5,
@@ -30,7 +30,7 @@ export class Mage {
       cooldown: 2.5,
       cooldownPerLevel: -0.15,
       speed: 0,
-      damage: 35,
+      damage: 30,
       damagePerLevel: 8,
       explodeRadius: 90,
       explodeRadiusPerLevel: 12,
@@ -43,6 +43,9 @@ export class Mage {
   }
 
   applyToPlayer(player) {
+    player.baseMaxHp = 70;
+    player.maxHp = 70;
+    player.hp = 70;
     this.skills.forEach((s) => s.setOwner(player));
   }
 
