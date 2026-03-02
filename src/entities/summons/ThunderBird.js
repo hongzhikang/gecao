@@ -4,19 +4,23 @@
  */
 
 import { BaseSummon } from './BaseSummon.js';
+import { getSummonConfig } from '../../config/SummonConfig.js';
 
 const CHAIN_COUNT = 3;
 
 export class ThunderBird extends BaseSummon {
   constructor(config = {}) {
+    const base = getSummonConfig('thunder_bird');
     super({
+      ...base,
       ...config,
       type: 'thunder_bird',
-      hp: config.hp ?? 35,
-      damage: config.damage ?? 7,
-      attackRange: config.attackRange ?? 85,
-      attackCooldown: config.attackCooldown ?? 1,
-      duration: config.duration ?? 16,
+      hp: config.hp ?? base.maxHealth ?? 70,
+      damage: config.damage ?? base.damage ?? 9,
+      attackRange: config.attackRange ?? base.attackRange ?? 85,
+      attackCooldown: config.attackCooldown ?? base.attackCooldown ?? 1,
+      duration: config.duration ?? base.duration ?? 16,
+      defense: config.defense ?? base.defense ?? 1,
     });
     this.chainDamageFactor = 0.7;
   }

@@ -4,19 +4,23 @@
  */
 
 import { BaseSummon } from './BaseSummon.js';
+import { getSummonConfig } from '../../config/SummonConfig.js';
 
 const MELEE_RANGE = 38;
 
 export class StoneGolem extends BaseSummon {
   constructor(config = {}) {
+    const base = getSummonConfig('stone_golem');
     super({
+      ...base,
       ...config,
       type: 'stone_golem',
-      hp: config.hp ?? 120,
-      damage: config.damage ?? 6,
-      attackRange: config.attackRange ?? 50,
-      attackCooldown: config.attackCooldown ?? 1.1,
-      duration: config.duration ?? 20,
+      hp: config.hp ?? base.maxHealth ?? 140,
+      damage: config.damage ?? base.damage ?? 8,
+      attackRange: config.attackRange ?? base.attackRange ?? 50,
+      attackCooldown: config.attackCooldown ?? base.attackCooldown ?? 1.2,
+      duration: config.duration ?? base.duration ?? 20,
+      defense: config.defense ?? base.defense ?? 4,
     });
     this.tauntRadius = 100;
   }

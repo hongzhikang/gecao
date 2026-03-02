@@ -1,65 +1,28 @@
+import { getGameData } from '../core/DataLoader.js';
+
 /**
- * DifficultyConfig.js - 难度系数（统一 difficultyMultipliers 管理）
- * 普通 100% / 困难 130% HP、150% 攻、140% 数量、90% 经验 / 地狱 170%、220%、180%、80%
+ * DifficultyConfig.js - 难度数据适配层
+ * 所有系数来自 /src/data/difficulty.json。
  */
 
-export const DifficultyConfig = {
-  easy: {
-    id: 'easy',
-    name: '简单',
-    enemyHealthMultiplier: 0.8,
-    enemyDamageMultiplier: 0.8,
-    spawnRateMultiplier: 0.8,
-    enemyCountMultiplier: 0.8,
-    expGainMultiplier: 1.2,
-    dropRateMultiplier: 1.3,
-    eliteWeightBonus: 0,
-  },
-  normal: {
-    id: 'normal',
-    name: '普通',
-    enemyHealthMultiplier: 1,
-    enemyDamageMultiplier: 1,
-    spawnRateMultiplier: 1,
-    enemyCountMultiplier: 1,
-    expGainMultiplier: 1,
-    dropRateMultiplier: 1,
-    eliteWeightBonus: 0,
-  },
-  hard: {
-    id: 'hard',
-    name: '困难',
-    enemyHealthMultiplier: 1.3,
-    enemyDamageMultiplier: 1.5,
-    spawnRateMultiplier: 1.4,
-    enemyCountMultiplier: 1.4,
-    expGainMultiplier: 0.9,
-    dropRateMultiplier: 0.85,
-    eliteWeightBonus: 0,
-  },
-  hell: {
-    id: 'hell',
-    name: '地狱',
-    enemyHealthMultiplier: 1.7,
-    enemyDamageMultiplier: 2.5,
-    spawnRateMultiplier: 1.8,
-    enemyCountMultiplier: 1.8,
-    expGainMultiplier: 0.8,
-    dropRateMultiplier: 0.7,
-    eliteWeightBonus: 1.5,
-  },
-  nightmare: {
-    id: 'nightmare',
-    name: '地狱',
-    enemyHealthMultiplier: 1.7,
-    enemyDamageMultiplier: 2.5,
-    spawnRateMultiplier: 1.8,
-    enemyCountMultiplier: 1.8,
-    expGainMultiplier: 0.8,
-    dropRateMultiplier: 0.7,
-    eliteWeightBonus: 1.5,
-  },
-};
+const RAW_DIFFICULTY = getGameData().difficulty;
+
+export const DifficultyConfig = Object.fromEntries(
+  Object.entries(RAW_DIFFICULTY).map(([id, cfg]) => {
+    const enemyHealthMultiplier = cfg.enemyHealthMultiplier ?? cfg.enemyHpMultiplier ?? 1;
+    const enemyDamageMultiplier = cfg.enemyDamageMultiplier ?? 1;
+    const spawnRateMultiplier = cfg.spawnRateMultiplier ?? cfg.spawnMultiplier ?? 1;
+    return [
+      id,
+      {
+        ...cfg,
+        enemyHealthMultiplier,
+        enemyDamageMultiplier,
+        spawnRateMultiplier,
+      },
+    ];
+  })
+);
 
 const STORAGE_KEY = 'gecao_difficulty';
 

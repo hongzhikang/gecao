@@ -5,12 +5,14 @@
 
 import { SummonSkill } from '../skills/SummonSkill.js';
 import { ProjectileSkill } from '../skills/ProjectileSkill.js';
+import { getClassConfig } from '../core/DataLoader.js';
 
 export class Summoner {
   constructor(skillConfigs = {}) {
     this.spritePath = '/assets/characters/summoner_idle.png';
     this.unlockedSummonTypes = ['poison_plant'];
-    this.attackSpeedMultiplier = 0.92; // 攻速略提升
+    const cfg = getClassConfig('summoner') || {};
+    this.attackSpeedMultiplier = cfg.attackSpeed ?? 0.9;
 
     const defaultBolt = {
       id: 'summoner_bolt',
@@ -52,9 +54,12 @@ export class Summoner {
   }
 
   applyToPlayer(player) {
-    player.baseMaxHp = 100;
-    player.maxHp = 100;
-    player.hp = 100;
+    const cfg = getClassConfig('summoner') || {};
+    if (cfg.maxHealth != null) {
+      player.baseMaxHp = cfg.maxHealth;
+      player.maxHp = cfg.maxHealth;
+      player.hp = cfg.maxHealth;
+    }
     player.speedMultiplierFromClass = this.attackSpeedMultiplier;
     player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
     this.skills.forEach((s) => s.setOwner(player));

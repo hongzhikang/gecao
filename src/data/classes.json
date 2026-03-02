@@ -1,0 +1,25 @@
+{
+  "warrior": {
+    "name": "战士",
+    "maxHealth": 140,
+    "attack": 24,
+    "attackSpeed": 1.0,
+    "critChance": 0.1,
+    "damageReduction": 0.1
+  },
+  "mage": {
+    "name": "法师",
+    "maxHealth": 70,
+    "attack": 16,
+    "attackSpeed": 1.2,
+    "range": 10
+  },
+  "summoner": {
+    "name": "召唤师",
+    "maxHealth": 100,
+    "attack": 14,
+    "attackSpeed": 0.9,
+    "maxSummons": 3
+  }
+}
+

@@ -4,19 +4,23 @@
  */
 
 import { BaseSummon } from './BaseSummon.js';
+import { getSummonConfig } from '../../config/SummonConfig.js';
 
 const MELEE_RANGE = 32;
 
 export class FireWolf extends BaseSummon {
   constructor(config = {}) {
+    const base = getSummonConfig('fire_wolf');
     super({
+      ...base,
       ...config,
       type: 'fire_wolf',
-      hp: config.hp ?? 30,
-      damage: config.damage ?? 12,
-      attackRange: config.attackRange ?? 60,
-      attackCooldown: config.attackCooldown ?? 0.45,
-      duration: config.duration ?? 15,
+      hp: config.hp ?? base.maxHealth ?? 80,
+      damage: config.damage ?? base.damage ?? 14,
+      attackRange: config.attackRange ?? base.attackRange ?? 60,
+      attackCooldown: config.attackCooldown ?? base.attackCooldown ?? 0.45,
+      duration: config.duration ?? base.duration ?? 15,
+      defense: config.defense ?? base.defense ?? 2,
     });
     this.dashSpeed = 200;
   }

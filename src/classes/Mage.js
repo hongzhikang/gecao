@@ -4,6 +4,7 @@
  */
 
 import { ProjectileSkill } from '../skills/ProjectileSkill.js';
+import { getClassConfig } from '../core/DataLoader.js';
 
 export class Mage {
   constructor(skillConfigs = {}) {
@@ -43,9 +44,12 @@ export class Mage {
   }
 
   applyToPlayer(player) {
-    player.baseMaxHp = 70;
-    player.maxHp = 70;
-    player.hp = 70;
+    const cfg = getClassConfig('mage') || {};
+    if (cfg.maxHealth != null) {
+      player.baseMaxHp = cfg.maxHealth;
+      player.maxHp = cfg.maxHealth;
+      player.hp = cfg.maxHealth;
+    }
     this.skills.forEach((s) => s.setOwner(player));
   }
 

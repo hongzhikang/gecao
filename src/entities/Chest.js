@@ -11,7 +11,28 @@ export class Chest {
     this.mesh = null;
   }
 
-  createMesh() {
+  /**
+   * 使用正式 chest.png 贴图渲染宝箱
+   * @param {import('../core/AssetLoader.js').AssetLoader} assetLoader
+   */
+  createMesh(assetLoader) {
+    // 优先使用项目统一的 AssetLoader 贴图
+    if (assetLoader?.createSpriteMaterial) {
+      const mat = assetLoader.createSpriteMaterial('/assets/chest.png', {
+        width: 48,
+        height: 48,
+      });
+      // 金色宝箱整体偏亮一点，保持同一贴图、不同色调
+      if (this.isGolden && mat.color) {
+        mat.color.setHex(0xffe066);
+      }
+      this.mesh = new THREE.Sprite(mat);
+      this.mesh.scale.set(52, 52, 1);
+      this.mesh.position.set(this.position.x, this.position.y, 0);
+      return this.mesh;
+    }
+
+    // 兜底：仍然使用旧的 Canvas 方块（理论上不会再走到这里）
     const canvas = document.createElement('canvas');
     canvas.width = 32;
     canvas.height = 32;
@@ -30,6 +51,7 @@ export class Chest {
     });
     this.mesh = new THREE.Sprite(mat);
     this.mesh.scale.set(40, 40, 1);
+    this.mesh.position.set(this.position.x, this.position.y, 0);
     this.mesh.position.set(this.position.x, this.position.y, 0);
     return this.mesh;
   }

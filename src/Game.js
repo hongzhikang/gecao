@@ -129,6 +129,7 @@ export class Game {
       '/assets/characters/warrior_idle.png',
       '/assets/characters/mage_idle.png',
       '/assets/characters/summoner_idle.png',
+      '/assets/chest.png',
       '/assets/enemies/zombie.png',
       '/assets/boss/demon_boss.png',
       '/assets/skills/mage_fireball.png',
@@ -265,11 +266,12 @@ export class Game {
     this.projectiles.push(proj);
   }
 
-  async addSummon(SummonClassOrType, config, spawnPosition) {
+  async addSummon(SummonClassOrType, config, spawnPosition, { maxSummonLimit } = {}) {
     const SummonClass = typeof SummonClassOrType === 'string'
       ? SUMMON_CLASS_MAP[SummonClassOrType]
       : SummonClassOrType;
     if (!SummonClass) return;
+
     const summon = new SummonClass(config);
     summon.setGame(this);
     summon.position.x = spawnPosition.x;
@@ -277,6 +279,25 @@ export class Game {
     summon.spawnTime = this.time;
     summon.orbitAngle = Math.random() * Math.PI * 2;
     await summon.createMesh(this.assetLoader);
+
+    const limit = maxSummonLimit ?? 3;
+    if (this.summons.length >= limit) {
+      let lowestIdx = 0;
+      let lowestHp = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < this.summons.length; i++) {
+        const s = this.summons[i];
+        const hp = s?.hp ?? s?.maxHp ?? 0;
+        if (hp < lowestHp) {
+          lowestHp = hp;
+          lowestIdx = i;
+        }
+      }
+      const old = this.summons[lowestIdx];
+      if (old?.mesh) this.scene.remove(old.mesh);
+      old?.dispose?.();
+      this.summons.splice(lowestIdx, 1);
+    }
+
     this.scene.add(summon.mesh);
     this.summons.push(summon);
   }
@@ -531,8 +552,20 @@ export class Game {
         this.killCount++;
         this.player.addExp(e.expDrop);
         if (this.player.classInstance?.constructor?.name === 'Summoner' && this.summons.length > 0 && Math.random() < 0.1) {
-          const s = this.summons[Math.floor(Math.random() * this.summons.length)];
-          if (s && s.spawnTime != null) s.spawnTime = this.time;
+          let target = null;
+          let lowestHpRatio = Number.POSITIVE_INFINITY;
+          this.summons.forEach((s) => {
+            const ratio = s && s.maxHp > 0 ? (s.hp ?? s.maxHp) / s.maxHp : 1;
+            if (ratio < lowestHpRatio) {
+              lowestHpRatio = ratio;
+              target = s;
+            }
+          });
+          if (target) {
+            target.hp = target.maxHp;
+            target.spawnTime = this.time;
+            target.healthBar?.update?.(target.hp, target.maxHp);
+          }
         }
         const burstCount = (e.type === 'fastRusher' || e.type === 'eliteEnemy') ? 16 : (e.type === 'boss' ? 24 : 10);
         this._spawnParticles(deadX, deadY, burstCount, e.type === 'boss' ? 0xaa2222 : 0x884400);
@@ -549,7 +582,7 @@ export class Game {
 
   _spawnChest(x, y, isGolden) {
     const chest = new Chest(x, y, isGolden);
-    chest.createMesh();
+    chest.createMesh(this.assetLoader);
     this.scene.add(chest.mesh);
     this.chests.push(chest);
   }

@@ -3,6 +3,8 @@
  * 展示选项并应用升级
  */
 
+import { getRewardsConfig } from '../core/DataLoader.js';
+
 export class UpgradeSystem {
   constructor(game) {
     this.game = game;
@@ -165,17 +167,88 @@ export class UpgradeSystem {
 
   _treasurePool(player) {
     const game = this.game;
+    const rewards = getRewardsConfig();
     return [
-      { name: '+Attack', desc: 'Damage +10%', apply: () => { player.damageMultiplier = (player.damageMultiplier || 1) * 1.1; } },
-      { name: '+Attack Speed', desc: 'Attack speed +5%', apply: () => { player.attackSpeedMultiplier = (player.attackSpeedMultiplier || 1) * 1.05; } },
-      { name: '+Max HP', desc: 'Max HP +20', apply: () => { player.baseMaxHp += 20; player.maxHp += 20; player.hp = Math.min(player.hp + 20, player.maxHp); } },
-      { name: '+Move Speed', desc: 'Move speed +5%', apply: () => { player.baseSpeed *= 1.05; player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1); } },
-      { name: '+Area Damage', desc: 'Skill area +15%', apply: () => { player.areaDamageMultiplier = (player.areaDamageMultiplier || 1) * 1.15; } },
-      { name: '+Lifesteal', desc: 'Heal 2% of damage dealt', apply: () => { player.lifestealPercent = (player.lifestealPercent || 0) + 2; } },
-      { name: '治疗', desc: '恢复 40% 最大生命', apply: () => { player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.4)); } },
-      { name: '护盾', desc: '获得 30 点临时护盾', apply: () => { player.shieldHp = (player.shieldHp || 0) + 30; } },
-      { name: '全屏爆发', desc: '对全场敌人造成 50 伤害', apply: () => { if (game?.getEnemiesInRadius && game?.player) { const list = game.getEnemiesInRadius(game.player.position.x, game.player.position.y, 9999); list.forEach((e) => { if (e.isAlive()) e.takeDamage(50, game.player.position.x, game.player.position.y, true); }); } } },
-    ];
+      {
+        cfg: rewards.attackBoost,
+        apply: () => {
+          const v = rewards.attackBoost?.value ?? 0.1;
+          player.damageMultiplier = (player.damageMultiplier || 1) * (1 + v);
+        },
+      },
+      {
+        cfg: rewards.attackSpeedBoost,
+        apply: () => {
+          const v = rewards.attackSpeedBoost?.value ?? 0.1;
+          player.attackSpeedMultiplier = (player.attackSpeedMultiplier || 1) * (1 + v);
+        },
+      },
+      {
+        cfg: rewards.maxHealthBoost,
+        apply: () => {
+          const v = rewards.maxHealthBoost?.value ?? 20;
+          player.baseMaxHp += v;
+          player.maxHp += v;
+          player.hp = Math.min(player.hp + v, player.maxHp);
+        },
+      },
+      {
+        cfg: rewards.moveSpeedBoost,
+        apply: () => {
+          const v = rewards.moveSpeedBoost?.value ?? 0.1;
+          player.baseSpeed *= 1 + v;
+          player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
+        },
+      },
+      {
+        cfg: rewards.areaBoost,
+        apply: () => {
+          const v = rewards.areaBoost?.value ?? 0.15;
+          player.areaDamageMultiplier = (player.areaDamageMultiplier || 1) * (1 + v);
+        },
+      },
+      {
+        cfg: rewards.lifesteal,
+        apply: () => {
+          const v = rewards.lifesteal?.value ?? 0.05;
+          player.lifestealPercent = (player.lifestealPercent || 0) + v * 100;
+        },
+      },
+      {
+        cfg: rewards.heal,
+        apply: () => {
+          const v = rewards.heal?.value ?? 0.4;
+          player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * v));
+        },
+      },
+      {
+        cfg: rewards.shield,
+        apply: () => {
+          const v = rewards.shield?.value ?? 30;
+          player.shieldHp = (player.shieldHp || 0) + v;
+        },
+      },
+      {
+        cfg: rewards.screenBurst,
+        apply: () => {
+          const v = rewards.screenBurst?.value ?? 50;
+          if (game?.getEnemiesInRadius && game?.player) {
+            const list = game.getEnemiesInRadius(
+              game.player.position.x,
+              game.player.position.y,
+              9999
+            );
+            list.forEach((e) => {
+              if (e.isAlive()) e.takeDamage(v, game.player.position.x, game.player.position.y, true);
+            });
+          }
+        },
+      },
+    ].map((item) => ({
+      name: item.cfg?.name ?? '',
+      desc: item.cfg?.description ?? '',
+      apply: item.apply,
+    }));
   }
 
   showWaveReward(player, wave, onClose) {
@@ -226,22 +299,22 @@ export class UpgradeSystem {
     }
     choices.innerHTML = '';
     if (isGolden) {
-      if (title) title.textContent = 'Golden Chest!';
+      if (title) title.textContent = '黄金宝箱奖励';
       opts.forEach((opt) => opt.apply());
       const msg = document.createElement('p');
       msg.style.cssText = 'color:#ffd700;margin:12px 0;';
-      msg.textContent = 'You received: ' + opts.map((o) => o.name).join(', ');
+      msg.textContent = '你获得了：' + opts.map((o) => o.name).join('、');
       choices.appendChild(msg);
       const btn = document.createElement('div');
       btn.className = 'choice';
-      btn.textContent = 'Continue';
+      btn.textContent = '继续战斗';
       btn.onclick = () => {
         this.hideChestReward();
         if (onClose) onClose();
       };
       choices.appendChild(btn);
     } else {
-      if (title) title.textContent = 'Chest opened! Pick one';
+      if (title) title.textContent = '宝箱开启！选择一项强化';
       opts.forEach((opt) => {
         const div = document.createElement('div');
         div.className = 'choice';

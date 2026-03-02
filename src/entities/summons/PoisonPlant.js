@@ -4,17 +4,21 @@
  */
 
 import { BaseSummon } from './BaseSummon.js';
+import { getSummonConfig } from '../../config/SummonConfig.js';
 
 export class PoisonPlant extends BaseSummon {
   constructor(config = {}) {
+    const base = getSummonConfig('poison_plant');
     super({
+      ...base,
       ...config,
       type: 'poison_plant',
-      hp: config.hp ?? 35,
-      damage: config.damage ?? 5,
-      attackRange: config.attackRange ?? 90,
-      attackCooldown: config.attackCooldown ?? 1.2,
-      duration: config.duration ?? 16,
+      hp: config.hp ?? base.maxHealth ?? 60,
+      damage: config.damage ?? base.damage ?? 10,
+      attackRange: config.attackRange ?? base.attackRange ?? 95,
+      attackCooldown: config.attackCooldown ?? base.attackCooldown ?? 1.1,
+      duration: config.duration ?? base.duration ?? 16,
+      defense: config.defense ?? base.defense ?? 1,
     });
     this.poisonDuration = 3;
     this.poisonTick = 0.5;

@@ -46,7 +46,17 @@
     #wave-reward-panel.visible { display: block !important; }
     #wave-reward-panel .choice { margin: 8px 0; padding: 12px; background: #222; border-radius: 4px; cursor: pointer; color: #fff; }
     #chest-reward-panel.visible { display: block !important; }
-    #chest-reward-panel .choice { margin: 8px 0; padding: 12px; background: #222; border-radius: 4px; cursor: pointer; color: #fff; }
+    #chest-reward-panel .choice {
+      margin: 8px 0;
+      padding: 12px;
+      background: #222;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    #chest-reward-panel .choice:hover { background: #333; }
     #game-over-panel.game-over-hidden { display: none !important; }
     #game-over-panel:not(.game-over-hidden) { display: flex !important; }
     #game-over-panel #game-over-restart:hover { background: #444; border-color: #0cf; }
@@ -140,8 +150,8 @@
     <h2>升级！选择一项</h2>
     <div id="upgrade-choices"></div>
   </div>
-  <div id="chest-reward-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);border:2px solid #daa520;border-radius:8px;padding:20px;z-index:25;pointer-events:auto;min-width:300px;">
-    <h2 id="chest-reward-title" style="color:#daa520;margin-bottom:12px;text-align:center;">Chest!</h2>
+  <div id="chest-reward-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);border:2px solid #daa520;border-radius:8px;padding:20px;z-index:25;pointer-events:auto;min-width:300px;max-width:90vw;">
+    <h2 id="chest-reward-title" style="color:#daa520;margin-bottom:12px;text-align:center;">选择一项强化</h2>
     <div id="chest-reward-choices"></div>
   </div>
   <div id="game-over-panel" class="game-over-hidden" style="position:fixed;inset:0;z-index:95;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;padding:24px;pointer-events:auto;">

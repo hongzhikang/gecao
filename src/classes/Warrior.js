@@ -4,11 +4,13 @@
  */
 
 import { MeleeSkill } from '../skills/MeleeSkill.js';
+import { getClassConfig } from '../core/DataLoader.js';
 
 export class Warrior {
   constructor(skillConfigs = {}) {
     this.spritePath = '/assets/characters/warrior_idle.png';
-    this.attackSpeedMultiplier = 1.0; // 中等攻速
+    const cfg = getClassConfig('warrior') || {};
+    this.attackSpeedMultiplier = cfg.attackSpeed ?? 1.0;
 
     const defaultMelee = {
       id: 'warrior_slash',
@@ -41,11 +43,15 @@ export class Warrior {
   }
 
   applyToPlayer(player) {
-    player.baseMaxHp = 140;
-    player.maxHp = 140;
-    player.hp = 140;
-    player.damageTakenMultiplier = 0.6; // 40% 伤害减免，被 3+ 包围时在 Game 中再乘 0.75
-    player.critRateBonus = 0.1; // 战士额外 10% 暴击率（总 20%）
+    const cfg = getClassConfig('warrior') || {};
+    if (cfg.maxHealth != null) {
+      player.baseMaxHp = cfg.maxHealth;
+      player.maxHp = cfg.maxHealth;
+      player.hp = cfg.maxHealth;
+    }
+    const dr = cfg.damageReduction ?? 0.1;
+    player.damageTakenMultiplier = 1 - dr;
+    player.critRateBonus = cfg.critChance ?? 0.1;
     player.speedMultiplierFromClass = this.attackSpeedMultiplier;
     player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
     this.skills.forEach((s) => s.setOwner(player));

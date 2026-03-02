@@ -4,6 +4,7 @@
  */
 
 import { BaseSkill } from './BaseSkill.js';
+import { getSummonConfig, GLOBAL_SUMMON_LIMIT } from '../config/SummonConfig.js';
 
 export class SummonSkill extends BaseSkill {
   constructor(config = {}) {
@@ -25,7 +26,7 @@ export class SummonSkill extends BaseSkill {
   async _doCast() {
     if (!this.owner || !this.game) return;
     this.owner.playAttackAnimation?.();
-    const maxCap = this.config.maxSummonCount ?? 5;
+    const maxCap = this.config.maxSummonCount ?? GLOBAL_SUMMON_LIMIT;
     const count = Math.min(maxCap, this.getValue('summonCount', 2));
     const unlocked = this.owner.classInstance?.unlockedSummonTypes ?? ['poison_plant'];
     const types = unlocked.length ? unlocked : ['poison_plant'];
@@ -37,18 +38,23 @@ export class SummonSkill extends BaseSkill {
       const x = this.owner.position.x + Math.cos(angle) * dist;
       const y = this.owner.position.y + Math.sin(angle) * dist;
 
+      const base = getSummonConfig(type);
+      const inheritAttackPercent = this.config.inheritAttackPercent ?? base.inheritAttackPercent ?? 0.2;
+      const ownerMult = this.owner?.damageMultiplier ?? 1;
+      const baseDamage = this.getValue('summonDamage', base.damage ?? 10);
       const config = {
-        hp: this.getValue('summonHp', 35),
-        damage: this.getValue('summonDamage', 10) * (this.owner?.damageMultiplier ?? 1),
-        duration: this.getValue('summonDuration', 18),
-        attackRange: this.getValue('attackRange', 55),
-        attackCooldown: this.attackCooldown,
-        slowOnHit: this.config.summonSlowOnHit ?? false,
-        slowDuration: this.config.summonSlowDuration ?? 0.8,
-        slowFactor: this.config.summonSlowFactor ?? 0.7,
+        hp: this.getValue('summonHp', base.maxHealth ?? 35),
+        damage: baseDamage * (1 + inheritAttackPercent) * ownerMult,
+        duration: this.getValue('summonDuration', base.duration ?? 18),
+        attackRange: this.getValue('attackRange', base.attackRange ?? 55),
+        attackCooldown: this.attackCooldown ?? base.attackCooldown ?? 0.8,
+        slowOnHit: this.config.summonSlowOnHit ?? base.slowOnHit ?? false,
+        slowDuration: this.config.summonSlowDuration ?? base.slowDuration ?? 0.8,
+        slowFactor: this.config.summonSlowFactor ?? base.slowFactor ?? 0.7,
+        defense: base.defense ?? 0,
       };
       if (this.game.addSummon) {
-        await this.game.addSummon(type, config, { x, y });
+        await this.game.addSummon(type, config, { x, y }, { maxSummonLimit: GLOBAL_SUMMON_LIMIT });
       }
     }
   }
