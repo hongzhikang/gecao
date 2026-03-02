@@ -40,6 +40,12 @@ export class PoisonPlant extends BaseSummon {
     }
     if (this.state === 'attacking' && this.targetEnemy?.isAlive() && this.attackCooldownRemain <= 0) {
       this.targetEnemy.takeDamage(this.damage);
+      if (this.slowOnHit && this.targetEnemy.speed != null) {
+        const base = (this.targetEnemy.config?.moveSpeed ?? 1) * 55;
+        const orig = this.targetEnemy.speed;
+        this.targetEnemy.speed = base * this.slowFactor;
+        setTimeout(() => { if (this.targetEnemy?.speed != null) this.targetEnemy.speed = base; }, (this.slowDuration || 0.8) * 1000);
+      }
       if (this.targetEnemy.poisonStack == null) this.targetEnemy.poisonStack = 0;
       this.targetEnemy.poisonStack = Math.min(5, (this.targetEnemy.poisonStack || 0) + 1);
       this.targetEnemy.poisonUntil = (this.game.time || 0) + this.poisonDuration;

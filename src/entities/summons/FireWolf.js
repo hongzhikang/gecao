@@ -47,6 +47,11 @@ export class FireWolf extends BaseSummon {
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
       if (dist <= MELEE_RANGE && this.attackCooldownRemain <= 0) {
         this.targetEnemy.takeDamage(this.damage);
+        if (this.slowOnHit && this.targetEnemy.speed != null) {
+          const base = (this.targetEnemy.config?.moveSpeed ?? 1) * 55;
+          this.targetEnemy.speed = base * this.slowFactor;
+          setTimeout(() => { if (this.targetEnemy?.speed != null) this.targetEnemy.speed = base; }, (this.slowDuration || 0.8) * 1000);
+        }
         this.attackCooldownRemain = this.attackCooldown;
       }
       const moveSpeed = this.dashSpeed;

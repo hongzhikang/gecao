@@ -241,9 +241,10 @@ export class Game {
     });
   }
 
-  /** 暴击：10% 概率 1.5 倍伤害 */
-  applyCrit(damage) {
-    const isCrit = Math.random() < 0.1;
+  /** 暴击：基础 10%，战士 +10% = 20%，1.5 倍伤害 */
+  applyCrit(damage, sourcePlayer) {
+    const rate = 0.1 + (sourcePlayer?.critRateBonus ?? 0);
+    const isCrit = Math.random() < rate;
     return { damage: isCrit ? damage * 1.5 : damage, isCrit };
   }
 
@@ -284,7 +285,7 @@ export class Game {
     const list = this.getEnemiesInRadius(x, y, radius);
     list.forEach((e) => {
       if (e.isAlive()) {
-        const { damage: dmg, isCrit } = this.applyCrit(damage);
+        const { damage: dmg, isCrit } = this.applyCrit(damage, this.player);
         if (this._showDamageFloat) this._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
         e.takeDamage(dmg, x, y, true);
         if (slowDuration > 0 && e.speed != null) {
@@ -409,7 +410,7 @@ export class Game {
       hitList.forEach((e) => {
         if (!e.isAlive() || p.hit.has(e)) return;
         p.hit.add(e);
-        const { damage: dmg, isCrit } = this.applyCrit(p.damage);
+        const { damage: dmg, isCrit } = this.applyCrit(p.damage, this.player);
         if (this._showDamageFloat) this._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
         e.takeDamage(dmg, p.x, p.y, true);
         if (p.explodeRadius > 0) {
@@ -491,7 +492,13 @@ export class Game {
       if (!CollisionSystem.circleCircle(px, py, pr, e.position.x, e.position.y, er)) return;
       const cooldown = e.attackCooldown ?? 0.6;
       if (gameTime >= (e.lastAttackTime ?? -1e9) + cooldown) {
-        this.player.takeDamage(e.damage);
+        let dmg = e.damage;
+        const player = this.player;
+        if (player.classInstance?.constructor?.name === 'Warrior') {
+          const near = this.getEnemiesInRadius(px, py, 85).length;
+          if (near >= 3) dmg *= 0.75;
+        }
+        player.takeDamage(dmg);
         e.lastAttackTime = gameTime;
         if (e.slowOnHit && this.player.speed) {
           const base = this.player.baseSpeed * (this.player.speedMultiplierFromClass ?? 1);
@@ -523,6 +530,10 @@ export class Game {
         });
         this.killCount++;
         this.player.addExp(e.expDrop);
+        if (this.player.classInstance?.constructor?.name === 'Summoner' && this.summons.length > 0 && Math.random() < 0.1) {
+          const s = this.summons[Math.floor(Math.random() * this.summons.length)];
+          if (s && s.spawnTime != null) s.spawnTime = this.time;
+        }
         const burstCount = (e.type === 'fastRusher' || e.type === 'eliteEnemy') ? 16 : (e.type === 'boss' ? 24 : 10);
         this._spawnParticles(deadX, deadY, burstCount, e.type === 'boss' ? 0xaa2222 : 0x884400);
         this._showExpFloat(deadX, deadY, e.expDrop);

@@ -6,7 +6,7 @@
 export const EnemyConfig = {
   basicZombie: {
     maxHealth: 32,
-    attackDamage: 6,
+    attackDamage: 7,
     attackCooldown: 0.6,
     moveSpeed: 0.8,
     expReward: 5,
@@ -18,7 +18,7 @@ export const EnemyConfig = {
   },
   fastGhoul: {
     maxHealth: 20,
-    attackDamage: 4,
+    attackDamage: 4.4,
     attackCooldown: 0.45,
     moveSpeed: 1.4,
     expReward: 4,
@@ -30,7 +30,7 @@ export const EnemyConfig = {
   },
   tankBrute: {
     maxHealth: 96,
-    attackDamage: 12,
+    attackDamage: 13,
     attackCooldown: 0.9,
     moveSpeed: 0.5,
     expReward: 10,
@@ -41,8 +41,8 @@ export const EnemyConfig = {
     attackFrameCount: 4,
   },
   eliteEnemy: {
-    maxHealth: 160,
-    attackDamage: 17,
+    maxHealth: 184,
+    attackDamage: 19,
     attackCooldown: 0.55,
     moveSpeed: 1.0,
     expReward: 25,
@@ -54,7 +54,7 @@ export const EnemyConfig = {
   },
   slowZombie: {
     maxHealth: 28,
-    attackDamage: 4,
+    attackDamage: 4.4,
     attackCooldown: 0.7,
     moveSpeed: 0.6,
     expReward: 6,
@@ -69,7 +69,7 @@ export const EnemyConfig = {
   },
   shieldEnemy: {
     maxHealth: 40,
-    attackDamage: 5,
+    attackDamage: 5.5,
     attackCooldown: 0.65,
     moveSpeed: 0.7,
     expReward: 8,
@@ -82,7 +82,7 @@ export const EnemyConfig = {
   },
   fastRusher: {
     maxHealth: 14,
-    attackDamage: 6,
+    attackDamage: 6.6,
     attackCooldown: 0.35,
     moveSpeed: 1.8,
     expReward: 5,
@@ -94,7 +94,7 @@ export const EnemyConfig = {
   },
   boss: {
     maxHealth: 640,
-    attackDamage: 29,
+    attackDamage: 32,
     attackCooldown: 1.0,
     moveSpeed: 0.7,
     expReward: 100,

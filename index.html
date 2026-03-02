@@ -53,6 +53,7 @@
     #difficulty-select.visible { display: flex !important; }
     .diff-btn { background: #333; color: #fff; border: 2px solid #666; border-radius: 6px; }
     .diff-btn:hover { border-color: #0af; background: #444; }
+    .diff-btn.selected { border-color: #0af; background: #2a2a4a; }
     #upgrade-panel {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: rgba(0,0,0,0.9); border: 2px solid #0af; border-radius: 8px;
@@ -100,7 +101,7 @@
     <h1>割草幸存者</h1>
     <p class="subtitle">选择模式与职业开始战斗</p>
     <div style="display:flex;gap:12px;margin-bottom:20px;">
-      <button type="button" class="diff-btn" id="mode-classic">经典模式</button>
+      <button type="button" class="diff-btn selected" id="mode-classic">经典模式</button>
       <button type="button" class="diff-btn" id="mode-survival">生存模式</button>
     </div>
     <p class="subtitle" style="margin-bottom:8px;">选择职业</p>

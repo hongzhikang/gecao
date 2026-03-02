@@ -47,6 +47,11 @@ export class ThunderBird extends BaseSummon {
         if (hit.has(current)) break;
         hit.add(current);
         current.takeDamage(dmg);
+        if (this.slowOnHit && current.speed != null) {
+          const base = (current.config?.moveSpeed ?? 1) * 55;
+          current.speed = base * this.slowFactor;
+          setTimeout(() => { if (current?.speed != null) current.speed = base; }, (this.slowDuration || 0.8) * 1000);
+        }
         dmg *= this.chainDamageFactor;
         const next = (this.game.enemies || [])
           .filter((e) => e.isAlive() && !hit.has(e))

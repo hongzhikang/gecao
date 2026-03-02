@@ -17,8 +17,8 @@ export class Warrior {
       cooldownPerLevel: -0.05,
       radius: 70,
       radiusPerLevel: 8,
-      damage: 20,
-      damagePerLevel: 4,
+      damage: 24,
+      damagePerLevel: 5,
       maxLevel: 5,
     };
 
@@ -29,7 +29,7 @@ export class Warrior {
       cooldownPerLevel: -0.2,
       radius: 100,
       radiusPerLevel: 15,
-      damage: 25,
+      damage: 28,
       damagePerLevel: 6,
       duration: 0.35,
       maxLevel: 5,
@@ -41,10 +41,11 @@ export class Warrior {
   }
 
   applyToPlayer(player) {
-    player.baseMaxHp = 120;
-    player.maxHp = 120;
-    player.hp = 120;
-    player.damageTakenMultiplier = 0.7; // 防御最高
+    player.baseMaxHp = 140;
+    player.maxHp = 140;
+    player.hp = 140;
+    player.damageTakenMultiplier = 0.6; // 40% 伤害减免，被 3+ 包围时在 Game 中再乘 0.75
+    player.critRateBonus = 0.1; // 战士额外 10% 暴击率（总 20%）
     player.speedMultiplierFromClass = this.attackSpeedMultiplier;
     player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
     this.skills.forEach((s) => s.setOwner(player));

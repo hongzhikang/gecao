@@ -4,7 +4,7 @@
  */
 
 import { Game } from './Game.js';
-import { getStoredDifficulty, setStoredDifficulty } from './config/DifficultyConfig.js';
+import { getStoredDifficulty, setStoredDifficulty, getDifficultyMultiplier } from './config/DifficultyConfig.js';
 
 const container = document.getElementById('game-container');
 const characterSelect = document.getElementById('character-select');
@@ -62,6 +62,7 @@ function showGameOverPanel(g) {
 
 function startGame(selectedClass, difficultyId) {
   difficultyId = difficultyId || getStoredDifficulty();
+  setStoredDifficulty(difficultyId);
   if (game) {
     game.dispose();
     game = null;
@@ -92,8 +93,16 @@ document.getElementById('game-over-restart')?.addEventListener('click', () => {
   if (difficultySelect) difficultySelect.classList.remove('visible');
 });
 
-document.getElementById('mode-classic')?.addEventListener('click', () => { gameMode = 'classic'; });
-document.getElementById('mode-survival')?.addEventListener('click', () => { gameMode = 'survival'; });
+document.getElementById('mode-classic')?.addEventListener('click', () => {
+  gameMode = 'classic';
+  document.querySelectorAll('#character-select .diff-btn[id^="mode-"]').forEach((b) => b.classList.remove('selected'));
+  document.getElementById('mode-classic')?.classList.add('selected');
+});
+document.getElementById('mode-survival')?.addEventListener('click', () => {
+  gameMode = 'survival';
+  document.querySelectorAll('#character-select .diff-btn[id^="mode-"]').forEach((b) => b.classList.remove('selected'));
+  document.getElementById('mode-survival')?.classList.add('selected');
+});
 
 characterSelect.querySelectorAll('.card').forEach((card) => {
   card.addEventListener('click', () => {

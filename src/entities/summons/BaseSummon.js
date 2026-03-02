@@ -16,6 +16,9 @@ export class BaseSummon {
     this.attackRange = config.attackRange ?? 55;
     this.attackCooldown = config.attackCooldown ?? 1;
     this.attackCooldownRemain = 0;
+    this.slowOnHit = config.slowOnHit ?? false;
+    this.slowDuration = config.slowDuration ?? 0.8;
+    this.slowFactor = config.slowFactor ?? 0.7;
     this.duration = config.duration ?? 18;
     this.spawnTime = 0;
     this.orbitAngle = 0;

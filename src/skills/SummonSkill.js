@@ -39,10 +39,13 @@ export class SummonSkill extends BaseSkill {
 
       const config = {
         hp: this.getValue('summonHp', 35),
-        damage: this.getValue('summonDamage', 8) * (this.owner?.damageMultiplier ?? 1),
+        damage: this.getValue('summonDamage', 10) * (this.owner?.damageMultiplier ?? 1),
         duration: this.getValue('summonDuration', 18),
         attackRange: this.getValue('attackRange', 55),
         attackCooldown: this.attackCooldown,
+        slowOnHit: this.config.summonSlowOnHit ?? false,
+        slowDuration: this.config.summonSlowDuration ?? 0.8,
+        slowFactor: this.config.summonSlowFactor ?? 0.7,
       };
       if (this.game.addSummon) {
         await this.game.addSummon(type, config, { x, y });

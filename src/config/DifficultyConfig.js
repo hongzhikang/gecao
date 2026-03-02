@@ -41,7 +41,7 @@ export const DifficultyConfig = {
     id: 'hell',
     name: '地狱',
     enemyHealthMultiplier: 1.7,
-    enemyDamageMultiplier: 2.2,
+    enemyDamageMultiplier: 2.5,
     spawnRateMultiplier: 1.8,
     enemyCountMultiplier: 1.8,
     expGainMultiplier: 0.8,
@@ -52,7 +52,7 @@ export const DifficultyConfig = {
     id: 'nightmare',
     name: '地狱',
     enemyHealthMultiplier: 1.7,
-    enemyDamageMultiplier: 2.2,
+    enemyDamageMultiplier: 2.5,
     spawnRateMultiplier: 1.8,
     enemyCountMultiplier: 1.8,
     expGainMultiplier: 0.8,
@@ -62,6 +62,11 @@ export const DifficultyConfig = {
 };
 
 const STORAGE_KEY = 'gecao_difficulty';
+
+export function getDifficultyMultiplier(difficultyId) {
+  const id = difficultyId === 'nightmare' ? 'hell' : (difficultyId || 'normal');
+  return DifficultyConfig[id] ?? DifficultyConfig.normal;
+}
 
 export function getStoredDifficulty() {
   try {

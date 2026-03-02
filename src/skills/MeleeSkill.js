@@ -23,7 +23,7 @@ export class MeleeSkill extends BaseSkill {
     this.owner.playAttackAnimation?.();
     const r = this.getValue('radius', 80);
     const rawDmg = this.getValue('damage', 15) * (this.owner?.damageMultiplier ?? 1);
-    const { damage: dmg, isCrit } = this.game.applyCrit?.(rawDmg) ?? { damage: rawDmg, isCrit: false };
+    const { damage: dmg, isCrit } = this.game.applyCrit?.(rawDmg, this.owner) ?? { damage: rawDmg, isCrit: false };
     const px = this.owner.position.x;
     const py = this.owner.position.y;
 

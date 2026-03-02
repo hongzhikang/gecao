@@ -10,15 +10,15 @@ export class Summoner {
   constructor(skillConfigs = {}) {
     this.spritePath = '/assets/characters/summoner_idle.png';
     this.unlockedSummonTypes = ['poison_plant'];
-    this.attackSpeedMultiplier = 0.85; // 攻速偏慢
+    this.attackSpeedMultiplier = 0.92; // 攻速略提升
 
     const defaultBolt = {
       id: 'summoner_bolt',
       name: '灵魂箭',
-      cooldown: 1.2,
-      cooldownPerLevel: -0.08,
+      cooldown: 1.05,
+      cooldownPerLevel: -0.06,
       speed: 350,
-      damage: 12,
+      damage: 14,
       damagePerLevel: 2,
       explodeRadius: 0,
       maxLevel: 5,
@@ -29,17 +29,20 @@ export class Summoner {
       name: '召唤小弟',
       cooldown: 8,
       cooldownPerLevel: -0.5,
-      summonCount: 2,
-      summonCountPerLevel: 1,
+      summonCount: 3,
+      summonCountPerLevel: 0,
       maxSummonCount: 3,
       summonHp: 35,
       summonHpPerLevel: 8,
-      summonDamage: 8,
+      summonDamage: 10,
       summonDamagePerLevel: 2,
       summonRadius: 16,
       summonDuration: 18,
       attackRange: 55,
-      attackCooldown: 0.7,
+      attackCooldown: 0.56,
+      summonSlowOnHit: true,
+      summonSlowDuration: 0.8,
+      summonSlowFactor: 0.7,
       maxLevel: 5,
     };
 
@@ -49,9 +52,9 @@ export class Summoner {
   }
 
   applyToPlayer(player) {
-    player.baseMaxHp = 85;
-    player.maxHp = 85;
-    player.hp = 85;
+    player.baseMaxHp = 100;
+    player.maxHp = 100;
+    player.hp = 100;
     player.speedMultiplierFromClass = this.attackSpeedMultiplier;
     player.speed = player.baseSpeed * (player.speedMultiplierFromClass ?? 1);
     this.skills.forEach((s) => s.setOwner(player));
