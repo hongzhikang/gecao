@@ -1,0 +1,60 @@
+{
+  "chapters": [
+    {
+      "id": "chapter_grass",
+      "name": "第一章·荒野试炼",
+      "description": "基础关卡：从稀疏僵尸到精英与Boss的渐进挑战。",
+      "background": "/assets/background/bg_main.png",
+      "difficultyId": "normal",
+      "waves": [
+        {
+          "index": 1,
+          "duration": 45,
+          "enemies": [
+            { "type": "basicZombie", "count": 8 }
+          ]
+        },
+        {
+          "index": 2,
+          "duration": 50,
+          "enemies": [
+            { "type": "basicZombie", "count": 12 },
+            { "type": "fastGhoul", "count": 4 }
+          ]
+        },
+        {
+          "index": 3,
+          "duration": 55,
+          "enemies": [
+            { "type": "basicZombie", "count": 10 },
+            { "type": "fastGhoul", "count": 6 },
+            { "type": "slowZombie", "count": 4 }
+          ]
+        },
+        {
+          "index": 4,
+          "duration": 60,
+          "enemies": [
+            { "type": "fastGhoul", "count": 8 },
+            { "type": "slowZombie", "count": 6 },
+            { "type": "shieldEnemy", "count": 4 },
+            { "type": "tankBrute", "count": 2 }
+          ]
+        },
+        {
+          "index": 5,
+          "duration": 75,
+          "boss": true,
+          "enemies": [
+            { "type": "basicZombie", "count": 12 },
+            { "type": "fastGhoul", "count": 8 },
+            { "type": "tankBrute", "count": 4 },
+            { "type": "eliteEnemy", "count": 3 },
+            { "type": "boss", "count": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

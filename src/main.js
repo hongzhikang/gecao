@@ -17,6 +17,7 @@ let game = null;
 let lastTime = performance.now();
 let updateAccum = 0;
 let gameMode = 'classic';
+let selectedChapterId = null;
 const FPS_CAP = 60;
 const FRAME_MIN = 1 / FPS_CAP;
 
@@ -76,6 +77,7 @@ function startGame(selectedClass, difficultyId) {
     difficulty: difficultyId,
     mode: gameMode,
     player: { speed: 180, maxHp: 100 },
+    chapterId: selectedChapterId || null,
   });
   game.onGameOver = () => showGameOverPanel(game);
   game.start().then(() => {
@@ -102,6 +104,18 @@ document.getElementById('mode-survival')?.addEventListener('click', () => {
   gameMode = 'survival';
   document.querySelectorAll('#character-select .diff-btn[id^="mode-"]').forEach((b) => b.classList.remove('selected'));
   document.getElementById('mode-survival')?.classList.add('selected');
+});
+
+document.getElementById('chapter-none')?.addEventListener('click', () => {
+  selectedChapterId = null;
+  document.querySelectorAll('#character-select .chapter-btn').forEach((b) => b.classList.remove('selected'));
+  document.getElementById('chapter-none')?.classList.add('selected');
+});
+
+document.getElementById('chapter-grass')?.addEventListener('click', () => {
+  selectedChapterId = 'chapter_grass';
+  document.querySelectorAll('#character-select .chapter-btn').forEach((b) => b.classList.remove('selected'));
+  document.getElementById('chapter-grass')?.classList.add('selected');
 });
 
 characterSelect.querySelectorAll('.card').forEach((card) => {

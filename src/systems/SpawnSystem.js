@@ -78,6 +78,8 @@ export class SpawnSystem {
 
   async trySpawn(time) {
     const waveSys = this.game?.waveSystem;
+    // 章节模式下完全由 WaveSystem + spawnWave 控制，不使用时间制刷怪
+    if (this.game?.chapterId) return;
     if (waveSys?.isSurvivalMode?.() && waveSys.isBetweenWaves) return;
     const elapsed = time - (waveSys?.waveStartTime ?? time);
     const rate = this._getSpawnRate(elapsed);
@@ -102,7 +104,7 @@ export class SpawnSystem {
   }
 
   async spawnWave(waveConfig) {
-    const list = waveConfig.enemies ?? [{ type: 'basicZombie', count: 5 }];
+    const list = waveConfig?.enemies ?? [{ type: 'basicZombie', count: 5 }];
     for (const { type = 'basicZombie', count = 1 } of list) {
       if (!this.game.enemyPool) return;
       for (let i = 0; i < count; i++) {

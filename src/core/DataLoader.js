@@ -8,6 +8,7 @@ import enemies from '../data/enemies.json';
 import summons from '../data/summons.json';
 import difficulty from '../data/difficulty.json';
 import rewards from '../data/rewards.json';
+import levels from '../data/levels.json';
 
 const TYPE_ALIAS = {
   zombie: 'basicZombie',
@@ -22,6 +23,7 @@ const GAME_DATA = {
   summons,
   difficulty,
   rewards,
+  levels,
 };
 
 export function getGameData() {
@@ -51,4 +53,15 @@ export function getDifficultyConfig(id) {
 export function getRewardsConfig() {
   return GAME_DATA.rewards;
 }
+
+export function getLevelsConfig() {
+  return GAME_DATA.levels;
+}
+
+export function getChapterConfig(id) {
+  const lv = GAME_DATA.levels;
+  if (!lv || !Array.isArray(lv.chapters)) return null;
+  return lv.chapters.find((c) => c.id === id) ?? null;
+}
+
 

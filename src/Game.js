@@ -26,6 +26,7 @@ import { PoisonPlant, FireWolf, StoneGolem, ThunderBird } from './entities/summo
 import { Warrior } from './classes/Warrior.js';
 import { Mage } from './classes/Mage.js';
 import { Summoner } from './classes/Summoner.js';
+import { getChapterConfig } from './core/DataLoader.js';
 
 const SUMMON_CLASS_MAP = {
   poison_plant: PoisonPlant,
@@ -61,6 +62,9 @@ export class Game {
     const classId = options.class ?? 'warrior';
     const ClassCtor = CLASS_MAP[classId] ?? Warrior;
     this.player.setClass(new ClassCtor(options.skillConfigs));
+
+    this.chapterId = options.chapterId ?? null;
+    this.chapterConfig = this.chapterId ? getChapterConfig(this.chapterId) : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
@@ -175,7 +179,8 @@ export class Game {
   async _setupBackground() {
     this.parallaxBackground = new ParallaxBackground(this.scene, this.assetLoader);
     this.parallaxBackground.setPlayerRef(this.player);
-    await this.parallaxBackground.init('/assets/background/bg_main.png');
+    const bgPath = this.chapterConfig?.background ?? '/assets/background/bg_main.png';
+    await this.parallaxBackground.init(bgPath);
     this._setupPlayerShadow();
     this._setupVignette();
   }
@@ -397,7 +402,11 @@ export class Game {
         this.spawnSystem.spawnWave(cfg);
       });
     };
-    if (this.waveSystem.isSurvivalMode()) {
+    if (this.chapterId) {
+      this.waveSystem.advanceWave();
+      const cfg = this.waveSystem.getWaveConfig();
+      await this.spawnSystem.spawnWave(cfg);
+    } else if (this.waveSystem.isSurvivalMode()) {
       this.waveSystem.advanceWave();
       const cfg = this.waveSystem.getWaveConfig();
       await this.spawnSystem.spawnWave(cfg);
