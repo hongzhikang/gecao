@@ -36,6 +36,7 @@
     }
     #ui-overlay .wave-num {
       position: absolute; top: 40px; left: 12px; color: #8af; font: 13px sans-serif;
+      text-shadow: 0 0 4px #000;
     }
     #ui-overlay .pause-btn {
       position: absolute; bottom: 12px; right: 12px; padding: 6px 12px; font-size: 12px;
@@ -137,7 +138,7 @@
   <div id="ui-overlay">
     <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
     <div class="kill-timer">Kills: <span id="kill-count">0</span> | <span id="survival-timer">00:00</span></div>
-    <div class="wave-num" id="wave-num" style="display:none;">波次 <span id="wave-count">1</span></div>
+    <div class="wave-num" id="wave-num">波次 <span id="wave-count">0</span></div>
     <div class="level-text">Lv.<span id="level-num">1</span></div>
     <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
     <button type="button" class="pause-btn" id="pause-btn">暂停</button>

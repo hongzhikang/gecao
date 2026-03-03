@@ -17,16 +17,20 @@ export class HealthBar {
   _createMesh() {
     const geo = new THREE.PlaneGeometry(this.width, this.height);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x330000,
+      color: 0x000000,
       depthTest: false,
+      transparent: true,
+      opacity: 0.7,
     });
     const bg = new THREE.Mesh(geo, mat);
     bg.position.z = 0.02;
 
     const fillGeo = new THREE.PlaneGeometry(this.width, this.height);
     const fillMat = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
+      color: 0xff4444,
       depthTest: false,
+      transparent: true,
+      opacity: 0.95,
     });
     this.fillMesh = new THREE.Mesh(fillGeo, fillMat);
     this.fillMesh.position.z = 0.03;

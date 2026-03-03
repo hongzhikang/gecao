@@ -30,8 +30,8 @@ export class BaseSummon {
     this.mesh = null;
     this.sprite = null;
     this.game = null;
-    this.healthBar = new HealthBar(28, 4);
-    this.healthBarYOffset = 22;
+    this.healthBar = new HealthBar(36, 5);
+    this.healthBarYOffset = 26;
     this.hitFlashUntil = 0;
     this.deathFadeDuration = 0.4;
     this.deathFadeUntil = null;

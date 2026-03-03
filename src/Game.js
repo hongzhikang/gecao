@@ -122,6 +122,10 @@ export class Game {
     this.lastChestDropTime = 0;
     this.chestDropInterval = 55;
     this._bindUI();
+    this.warriorRangeIndicator = null;
+    if (this.player.classInstance?.constructor?.name === 'Warrior') {
+      this._setupWarriorRangeIndicator();
+    }
   }
 
   async _preloadAssets() {
@@ -211,6 +215,26 @@ export class Game {
   async _setupPlayer() {
     await this.player.createSprite(this.assetLoader);
     this.scene.add(this.player.mesh);
+  }
+
+  _setupWarriorRangeIndicator() {
+    const warrior = this.player.classInstance;
+    const meleeSkill = warrior?.slash;
+    const baseRadius = meleeSkill?.config?.radius ?? 70;
+    const inner = Math.max(0, baseRadius - 2);
+    const geo = new THREE.RingGeometry(inner, baseRadius, 64);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x00ff99,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const ring = new THREE.Mesh(geo, mat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(0, 0, -0.5);
+    this.player.mesh.add(ring);
+    this.warriorRangeIndicator = ring;
   }
 
   _setupHurtFlash() {
@@ -673,8 +697,10 @@ export class Game {
       });
       if (nearest && e.attackSummonCooldown == null) e.attackSummonCooldown = 0;
       if (nearest && e.attackSummonCooldown <= 0) {
-        nearest.takeDamage((e.damage ?? e.config?.damage ?? 5) * dt * 2);
-        e.attackSummonCooldown = 0.5;
+        const baseDamage = e.damage ?? e.config?.damage ?? 5;
+        // 敌人每次攻击对召唤兽造成一段固定伤害，避免被 dt 稀释掉
+        nearest.takeDamage(baseDamage * 0.7);
+        e.attackSummonCooldown = 0.6;
       }
       if (e.attackSummonCooldown != null) e.attackSummonCooldown -= dt;
     });
@@ -697,13 +723,10 @@ export class Game {
     }
     const waveNumEl = document.getElementById('wave-num');
     const waveCountEl = document.getElementById('wave-count');
-    if (waveNumEl && waveCountEl) {
-      if (this.waveSystem?.isSurvivalMode?.()) {
-        waveNumEl.style.display = '';
-        waveCountEl.textContent = this.waveSystem.getCurrentWave();
-      } else {
-        waveNumEl.style.display = 'none';
-      }
+    if (waveNumEl && waveCountEl && this.waveSystem) {
+      const wave = this.waveSystem.getCurrentWave();
+      waveNumEl.style.display = '';
+      waveCountEl.textContent = wave;
     }
 
     if (this.hurtFlashEl) {
