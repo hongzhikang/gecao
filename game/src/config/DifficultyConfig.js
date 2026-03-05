@@ -2,27 +2,34 @@ import { getGameData } from '../core/DataLoader.js';
 
 /**
  * DifficultyConfig.js - 难度数据适配层
- * 所有系数来自 /src/data/difficulty.json。
+ * 所有系数来自后端返回的 difficulty 配置。
+ *
+ * 使用方案一：延迟初始化。
+ * 在 DataLoader.initGameData() 之后调用 initDifficultyConfig() 来填充 DifficultyConfig。
  */
 
-const RAW_DIFFICULTY = getGameData().difficulty;
+export let DifficultyConfig = {};
 
-export const DifficultyConfig = Object.fromEntries(
-  Object.entries(RAW_DIFFICULTY).map(([id, cfg]) => {
-    const enemyHealthMultiplier = cfg.enemyHealthMultiplier ?? cfg.enemyHpMultiplier ?? 1;
-    const enemyDamageMultiplier = cfg.enemyDamageMultiplier ?? 1;
-    const spawnRateMultiplier = cfg.spawnRateMultiplier ?? cfg.spawnMultiplier ?? 1;
-    return [
-      id,
-      {
-        ...cfg,
-        enemyHealthMultiplier,
-        enemyDamageMultiplier,
-        spawnRateMultiplier,
-      },
-    ];
-  })
-);
+export function initDifficultyConfig() {
+  const RAW_DIFFICULTY = getGameData().difficulty || {};
+
+  DifficultyConfig = Object.fromEntries(
+    Object.entries(RAW_DIFFICULTY).map(([id, cfg]) => {
+      const enemyHealthMultiplier = cfg.enemyHealthMultiplier ?? cfg.enemyHpMultiplier ?? 1;
+      const enemyDamageMultiplier = cfg.enemyDamageMultiplier ?? 1;
+      const spawnRateMultiplier = cfg.spawnRateMultiplier ?? cfg.spawnMultiplier ?? 1;
+      return [
+        id,
+        {
+          ...cfg,
+          enemyHealthMultiplier,
+          enemyDamageMultiplier,
+          spawnRateMultiplier,
+        },
+      ];
+    })
+  );
+}
 
 const STORAGE_KEY = 'gecao_difficulty';
 

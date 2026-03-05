@@ -2,10 +2,17 @@ import { getGameData, getEnemyConfig as getEnemyConfigFromData } from '../core/D
 
 /**
  * EnemyConfig.js - 敌人数据适配层
- * 所有数值来自 /src/data/enemies.json，由 DataLoader 统一加载。
+ * 所有数值来自后端返回的 enemies 配置。
+ *
+ * 为了避免在模块加载时直接访问未初始化的 GAME_DATA，
+ * 使用延迟初始化：在 DataLoader.initGameData() 之后调用 initEnemyConfig()。
  */
 
-export const EnemyConfig = getGameData().enemies;
+export let EnemyConfig = {};
+
+export function initEnemyConfig() {
+  EnemyConfig = getGameData().enemies || {};
+}
 
 export const BASE_ENEMY_SPEED = 55;
 

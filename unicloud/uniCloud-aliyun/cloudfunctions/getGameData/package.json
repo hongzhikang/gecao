@@ -1,0 +1,7 @@
+{
+  "name": "getGameData",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

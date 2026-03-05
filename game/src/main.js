@@ -4,7 +4,10 @@
  */
 
 import { Game } from './Game.js';
-import { getStoredDifficulty, setStoredDifficulty, getDifficultyMultiplier } from './config/DifficultyConfig.js';
+import { getStoredDifficulty, setStoredDifficulty, getDifficultyMultiplier, initDifficultyConfig } from './config/DifficultyConfig.js';
+import { initEnemyConfig } from './config/EnemyConfig.js';
+import { initSummonConfig } from './config/SummonConfig.js';
+import { initGameData } from './core/DataLoader.js';
 
 const container = document.getElementById('game-container');
 const characterSelect = document.getElementById('character-select');
@@ -61,7 +64,7 @@ function showGameOverPanel(g) {
   }
 }
 
-function startGame(selectedClass, difficultyId) {
+async function startGame(selectedClass, difficultyId) {
   difficultyId = difficultyId || getStoredDifficulty();
   setStoredDifficulty(difficultyId);
   if (game) {
@@ -72,6 +75,13 @@ function startGame(selectedClass, difficultyId) {
   if (gameOverPanel) gameOverPanel.classList.add('game-over-hidden');
   if (difficultySelect) difficultySelect.classList.remove('visible');
   characterSelect.classList.add('hidden');
+
+  // 确保先从云端加载配置，再初始化难度和敌人映射
+  await initGameData();
+  initDifficultyConfig();
+  initEnemyConfig();
+  initSummonConfig();
+
   game = new Game(container, {
     class: selectedClass,
     difficulty: difficultyId,
@@ -80,10 +90,9 @@ function startGame(selectedClass, difficultyId) {
     chapterId: selectedChapterId || null,
   });
   game.onGameOver = () => showGameOverPanel(game);
-  game.start().then(() => {
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
-  });
+  await game.start();
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
   window.addEventListener('resize', () => game.resize());
   window.game = game;
 }
