@@ -51,6 +51,12 @@ export class Player {
     return Array.from({ length: count }, (_, i) => `${base}${name}${i + 1}.png`);
   }
 
+  /** 若接口返回了帧图 URL 列表则用其路径，否则返回 null 走默认 _getAttackFramePaths */
+  _getAttackFrameUrls() {
+    const urls = this.classInstance?.frameUrls;
+    return Array.isArray(urls) && urls.length > 0 ? urls : null;
+  }
+
   setGame(game) {
     this.game = game;
   }
@@ -63,10 +69,16 @@ export class Player {
   async createSprite(assetLoader) {
     const idlePath = this.classInstance?.spritePath ?? '/assets/characters/warrior_idle.png';
     const idleTex = await assetLoader.loadTexture(idlePath);
-    const attackPaths = this._getAttackFramePaths();
-    const attackTexs = attackPaths.length
-      ? await Promise.all(attackPaths.map((p) => assetLoader.loadTexture(p)))
-      : [];
+    const apiUrls = this._getAttackFrameUrls();
+    let attackTexs;
+    if (apiUrls) {
+      attackTexs = await Promise.all(apiUrls.map((url) => assetLoader.loadTexture(url)));
+    } else {
+      const attackPaths = this._getAttackFramePaths();
+      attackTexs = attackPaths.length
+        ? await Promise.all(attackPaths.map((p) => assetLoader.loadTexture(p)))
+        : [];
+    }
     const mat = new THREE.SpriteMaterial({
       map: idleTex,
       transparent: true,

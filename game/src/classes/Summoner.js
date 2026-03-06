@@ -9,9 +9,11 @@ import { getClassConfig } from '../core/DataLoader.js';
 
 export class Summoner {
   constructor(skillConfigs = {}) {
-    this.spritePath = '/assets/characters/summoner_idle.png';
-    this.unlockedSummonTypes = ['poison_plant'];
     const cfg = getClassConfig('summoner') || {};
+    this.spritePath = cfg.spritePath ?? '/assets/characters/summoner_idle.png';
+    this.frameUrls = Array.isArray(cfg.frameUrls) ? cfg.frameUrls : undefined;
+    this.unlockedSummonTypes = ['poison_plant'];
+
     this.attackSpeedMultiplier = cfg.attackSpeed ?? 0.9;
 
     const defaultBolt = {

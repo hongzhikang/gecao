@@ -26,7 +26,7 @@ export class FireWolf extends BaseSummon {
   }
 
   async createMesh(assetLoader) {
-    return super.createMesh(assetLoader, '/assets/summons/fire_wolf.png');
+    return super.createMesh(assetLoader, this.config.spritePath || '/assets/summons/fire_wolf.png');
   }
 
   update(dt) {

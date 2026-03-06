@@ -26,7 +26,7 @@ import { PoisonPlant, FireWolf, StoneGolem, ThunderBird } from './entities/summo
 import { Warrior } from './classes/Warrior.js';
 import { Mage } from './classes/Mage.js';
 import { Summoner } from './classes/Summoner.js';
-import { getChapterConfig } from './core/DataLoader.js';
+import { getGameData, getChapterConfig } from './core/DataLoader.js';
 
 const SUMMON_CLASS_MAP = {
   poison_plant: PoisonPlant,
@@ -153,6 +153,21 @@ export class Game {
       '/assets/summons/stone_golem.png',
       '/assets/summons/thunder_bird.png',
     ];
+    const seen = new Set(paths);
+    try {
+      const data = getGameData();
+      [data.classes, data.enemies, data.summons].forEach((map) => {
+        if (!map || typeof map !== 'object') return;
+        Object.values(map).forEach((item) => {
+          if (item?.spritePath && typeof item.spritePath === 'string' && !seen.has(item.spritePath)) {
+            seen.add(item.spritePath);
+            paths.push(item.spritePath);
+          }
+          const urls = item?.frameUrls;
+          if (Array.isArray(urls)) urls.forEach((url) => { if (url && !seen.has(url)) { seen.add(url); paths.push(url); } });
+        });
+      });
+    } catch (_) {}
     await Promise.all(paths.map((p) => this.assetLoader.loadTexture(p)));
   }
 

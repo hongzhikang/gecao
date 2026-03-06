@@ -26,7 +26,7 @@ export class StoneGolem extends BaseSummon {
   }
 
   async createMesh(assetLoader) {
-    return super.createMesh(assetLoader, '/assets/summons/stone_golem.png');
+    return super.createMesh(assetLoader, this.config.spritePath || '/assets/summons/stone_golem.png');
   }
 
   update(dt) {

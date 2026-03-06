@@ -26,7 +26,7 @@ export class ThunderBird extends BaseSummon {
   }
 
   async createMesh(assetLoader) {
-    return super.createMesh(assetLoader, '/assets/summons/thunder_bird.png');
+    return super.createMesh(assetLoader, this.config.spritePath || '/assets/summons/thunder_bird.png');
   }
 
   update(dt) {

@@ -63,12 +63,19 @@ export class Enemy {
   async init(position, assetLoader) {
     this.position.x = position.x;
     this.position.y = position.y;
-    const path = this.config.spritePath ?? '/assets/enemies/zombie.png';
-    const idleTex = await assetLoader.loadTexture(path);
-    const attackPaths = this._getAttackFramePaths();
-    const attackTexs = attackPaths.length
-      ? await Promise.all(attackPaths.map((p) => assetLoader.loadTexture(p)))
-      : [];
+    const frameUrls = this.config.frameUrls;
+    const useApiFrames = Array.isArray(frameUrls) && frameUrls.length > 0;
+    const idlePath = this.config.spritePath ?? (useApiFrames ? frameUrls[0] : null) ?? '/assets/enemies/zombie.png';
+    const idleTex = await assetLoader.loadTexture(idlePath);
+    let attackTexs = [];
+    if (useApiFrames) {
+      attackTexs = await Promise.all(frameUrls.map((url) => assetLoader.loadTexture(url)));
+    } else {
+      const attackPaths = this._getAttackFramePaths();
+      attackTexs = attackPaths.length
+        ? await Promise.all(attackPaths.map((p) => assetLoader.loadTexture(p)))
+        : [];
+    }
     const mat = new THREE.SpriteMaterial({
       map: idleTex,
       transparent: true,

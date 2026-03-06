@@ -8,7 +8,9 @@ import { getClassConfig } from '../core/DataLoader.js';
 
 export class Mage {
   constructor(skillConfigs = {}) {
-    this.spritePath = '/assets/characters/mage_idle.png';
+    const cfg = getClassConfig('mage') || {};
+    this.spritePath = cfg.spritePath ?? '/assets/characters/mage_idle.png';
+    this.frameUrls = Array.isArray(cfg.frameUrls) ? cfg.frameUrls : undefined;
 
     const defaultOrb = {
       id: 'mage_orb',

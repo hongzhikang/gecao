@@ -23,7 +23,7 @@ exports.main = async (event, context) => {
 
     // 2. 按 code / id 转成字典对象，结构贴近你原来的 JSON
 
-    // 职业 -> classes
+    // 职业 -> classes（含游戏用图：spritePath、帧数、帧图列表）
     const classes = {};
     heroesRes.data.forEach(doc => {
       classes[doc.code] = {
@@ -34,7 +34,10 @@ exports.main = async (event, context) => {
         critChance: doc.critChance,
         damageReduction: doc.damageReduction,
         range: doc.range,
-        maxSummons: doc.maxSummons
+        maxSummons: doc.maxSummons,
+        spritePath: doc.spritePath,
+        frameCount: doc.frameCount,
+        frameUrls: Array.isArray(doc.frameUrls) ? doc.frameUrls : undefined
       };
     });
 

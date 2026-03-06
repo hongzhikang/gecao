@@ -52,6 +52,8 @@ export class SummonSkill extends BaseSkill {
         slowDuration: this.config.summonSlowDuration ?? base.slowDuration ?? 0.8,
         slowFactor: this.config.summonSlowFactor ?? base.slowFactor ?? 0.7,
         defense: base.defense ?? 0,
+        spritePath: base.spritePath,
+        frameUrls: Array.isArray(base.frameUrls) ? base.frameUrls : undefined,
       };
       if (this.game.addSummon) {
         await this.game.addSummon(type, config, { x, y }, { maxSummonLimit: GLOBAL_SUMMON_LIMIT });

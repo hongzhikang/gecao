@@ -8,8 +8,9 @@ import { getClassConfig } from '../core/DataLoader.js';
 
 export class Warrior {
   constructor(skillConfigs = {}) {
-    this.spritePath = '/assets/characters/warrior_idle.png';
     const cfg = getClassConfig('warrior') || {};
+    this.spritePath = cfg.spritePath ?? '/assets/characters/warrior_idle.png';
+    this.frameUrls = Array.isArray(cfg.frameUrls) ? cfg.frameUrls : undefined;
     this.attackSpeedMultiplier = cfg.attackSpeed ?? 1.0;
 
     const defaultMelee = {

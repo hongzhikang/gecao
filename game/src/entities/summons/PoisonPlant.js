@@ -25,7 +25,7 @@ export class PoisonPlant extends BaseSummon {
   }
 
   async createMesh(assetLoader) {
-    return super.createMesh(assetLoader, '/assets/summons/poison_plant.png');
+    return super.createMesh(assetLoader, this.config.spritePath || '/assets/summons/poison_plant.png');
   }
 
   update(dt) {
