@@ -7,6 +7,11 @@
     <div class="admin-table-wrap">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="id" label="关卡ID" min-width="130" />
+        <el-table-column label="图片" width="80" align="center">
+          <template #default="{ row }">
+            <img :src="getThumbSrc(row)" @error="onThumbError" class="table-thumb" alt="" />
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="名称" min-width="160" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column prop="background" label="背景图" min-width="200" show-overflow-tooltip />
@@ -73,6 +78,14 @@
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { list as apiList, add as apiAdd, update as apiUpdate, remove as apiRemove, uploadImage } from '../api/admin'
+import { DEFAULT_PLACEHOLDER, getTableImageSrc } from '../utils/placeholder.js'
+
+function getThumbSrc(row) {
+  return getTableImageSrc(row, { main: 'background' })
+}
+function onThumbError(e) {
+  e.target.src = DEFAULT_PLACEHOLDER
+}
 
 const COLLECTION = 'levels'
 const loading = ref(false)
@@ -221,6 +234,13 @@ onMounted(load)
 .toolbar h2 {
   margin: 0;
   font-size: 18px;
+}
+.table-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  vertical-align: middle;
 }
 .form-tip {
   font-size: 12px;

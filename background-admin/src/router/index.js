@@ -1,7 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Layout from '../views/Layout.vue'
 
+const TOKEN_KEY = 'admin_token'
+
 const routes = [
+  { path: '/login', name: 'Login', component: () => import('../views/Login.vue'), meta: { title: '登录', public: true } },
+  { path: '/register', name: 'Register', component: () => import('../views/Register.vue'), meta: { title: '注册', public: true } },
   {
     path: '/',
     component: Layout,
@@ -18,8 +22,25 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (to.meta.public) {
+    if (token && (to.path === '/login' || to.path === '/register')) {
+      next(to.query.redirect || '/')
+    } else {
+      next()
+    }
+    return
+  }
+  if (!token) {
+    next({ path: '/login', query: to.path !== '/' ? { redirect: to.fullPath } : {} })
+    return
+  }
+  next()
 })
 
 export default router

@@ -62,6 +62,10 @@ export class Game {
     const classId = options.class ?? 'warrior';
     const ClassCtor = CLASS_MAP[classId] ?? Warrior;
     this.player.setClass(new ClassCtor(options.skillConfigs));
+    const bonus = options.playerBonus;
+    if (bonus && typeof this.player.applyCultivationBonus === 'function') {
+      this.player.applyCultivationBonus(bonus);
+    }
 
     this.chapterId = options.chapterId ?? null;
     this.chapterConfig = this.chapterId ? getChapterConfig(this.chapterId) : null;
@@ -109,6 +113,7 @@ export class Game {
     this.SUMMON_CLASS_MAP = SUMMON_CLASS_MAP;
 
     this.killCount = 0;
+    this.earnedCoins = 0;
     this.gameOver = false;
     this.onGameOver = null;
     this.chests = [];
@@ -132,7 +137,7 @@ export class Game {
     }
   }
 
-  async _preloadAssets() {
+  async _preloadAssets(onProgress) {
     const paths = [
       '/assets/characters/warrior_idle.png',
       '/assets/characters/mage_idle.png',
@@ -168,7 +173,11 @@ export class Game {
         });
       });
     } catch (_) {}
-    await Promise.all(paths.map((p) => this.assetLoader.loadTexture(p)));
+    const total = paths.length;
+    for (let i = 0; i < paths.length; i++) {
+      await this.assetLoader.loadTexture(paths[i]);
+      if (typeof onProgress === 'function') onProgress((i + 1) / total);
+    }
   }
 
   _setupParticleSystem() {
@@ -394,8 +403,11 @@ export class Game {
     this.pendingLevelUpPlayer = player;
   }
 
-  async start() {
-    await this._preloadAssets();
+  async start(options = {}) {
+    const onProgress = options.onProgress;
+    if (typeof onProgress === 'function') onProgress(0);
+    await this._preloadAssets(onProgress);
+    if (typeof onProgress === 'function') onProgress(1);
     await this._setupBackground();
     this._setupParticleSystem();
     await this._setupPlayer();
@@ -407,9 +419,26 @@ export class Game {
     this.spawnSystem.lastSpawnTime = this.time;
     this.lastChestDropTime = this.time;
     this.waveSystem.onWaveComplete = (wave) => {
+      this.earnedCoins = (this.earnedCoins || 0) + 5;
+      const totalWaves = this.waveSystem.getChapterWaveCount();
+      const hasNextWave = this.chapterId && totalWaves > 0 && wave < totalWaves;
+      // 章节模式且还有下一波：不弹奖励面板，立即刷下一波
+      if (hasNextWave) {
+        this.waveSystem.advanceWave();
+        this.waveSystem.isBetweenWaves = false;
+        this.waveSystem.waveStartTime = this.time;
+        const cfg = this.waveSystem.getWaveConfig();
+        this.spawnSystem.spawnWave(cfg);
+        return;
+      }
       this.paused = true;
       this.upgradeSystem.showWaveReward(this.player, wave, () => {
         this.paused = false;
+        // 章节模式且刚完成最后一波：不再刷怪，关卡结束
+        if (this.chapterId && totalWaves > 0 && wave >= totalWaves) {
+          this.waveSystem.advanceWave();
+          return;
+        }
         this.waveSystem.advanceWave();
         this.waveSystem.isBetweenWaves = false;
         this.waveSystem.waveStartTime = this.time;
@@ -598,6 +627,7 @@ export class Game {
           }
         });
         this.killCount++;
+        this.earnedCoins = (this.earnedCoins || 0) + 1;
         this.player.addExp(e.expDrop);
         if (this.player.classInstance?.constructor?.name === 'Summoner' && this.summons.length > 0 && Math.random() < 0.1) {
           let target = null;

@@ -31,6 +31,12 @@ export class WaveSystem {
     return !!this.chapterConfig;
   }
 
+  /** 章节配置中的波次总数（用于判断是否还有下一波 / 关卡是否结束） */
+  getChapterWaveCount() {
+    if (!this.isChapterMode()) return 0;
+    return (this.chapterConfig?.waves ?? []).length;
+  }
+
   _getCurrentChapterWave() {
     if (!this.isChapterMode()) return null;
     const list = this.chapterConfig?.waves ?? [];
@@ -81,7 +87,10 @@ export class WaveSystem {
         ? (chapterWave?.duration ?? this.waveDuration)
         : this.waveDuration;
       const elapsed = time - this.waveStartTime;
-      if (elapsed >= duration) {
+      // 章节模式：当前波敌人全灭时也视为波次结束，立即进入下一波
+      const chapterAllDead = this.isChapterMode() && (this.wave || 0) >= 1
+        && (!this.game.enemies || this.game.enemies.length === 0);
+      if (elapsed >= duration || chapterAllDead) {
         this.isBetweenWaves = true;
         this.betweenWaveEndTime = time + this.betweenWaveDuration;
         if (typeof this.onWaveComplete === 'function') this.onWaveComplete(this.wave);

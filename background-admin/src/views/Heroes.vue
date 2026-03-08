@@ -7,6 +7,11 @@
     <div class="admin-table-wrap">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="code" label="编码" min-width="100" />
+        <el-table-column label="图片" width="80" align="center">
+          <template #default="{ row }">
+            <img :src="getThumbSrc(row)" @error="onThumbError" class="table-thumb" alt="" />
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="名称" min-width="90" />
         <el-table-column prop="maxHealth" label="最大生命" min-width="120" />
         <el-table-column prop="attack" label="攻击" min-width="90" />
@@ -89,8 +94,16 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { list as apiList, add as apiAdd, update as apiUpdate, remove as apiRemove, uploadImage } from '../api/admin'
+import { DEFAULT_PLACEHOLDER, getTableImageSrc } from '../utils/placeholder.js'
 
 const COLLECTION = 'heroes'
+
+function getThumbSrc(row) {
+  return getTableImageSrc(row, { main: 'spritePath', fallback: 'frameUrls.0' })
+}
+function onThumbError(e) {
+  e.target.src = DEFAULT_PLACEHOLDER
+}
 const loading = ref(false)
 const list = ref([])
 const dialogVisible = ref(false)
@@ -253,6 +266,13 @@ onMounted(load)
 .toolbar h2 {
   margin: 0;
   font-size: 18px;
+}
+.table-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  vertical-align: middle;
 }
 .upload-row {
   display: flex;

@@ -13,7 +13,30 @@ function parseBody(event) {
   return event.body || event;
 }
 
+function getTokenFromEvent(event) {
+  const headers = event.headers || event.header || {};
+  const auth = headers['Authorization'] || headers['authorization'] || '';
+  if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
+  return null;
+}
+
+async function verifyToken(db, token) {
+  if (!token) return false;
+  const res = await db.collection('admin_tokens').where({ token }).get();
+  if (!res.data || res.data.length === 0) return false;
+  const row = res.data[0];
+  const expireAt = row.expireAt != null ? new Date(row.expireAt).getTime() : 0;
+  return expireAt > Date.now();
+}
+
 exports.main = async (event, context) => {
+  const token = getTokenFromEvent(event);
+  const db = uniCloud.database();
+  const valid = await verifyToken(db, token);
+  if (!valid) {
+    return { code: 401, msg: 'unauthorized' };
+  }
+
   const body = parseBody(event);
   if (!body || !body.collection || !body.action) {
     return { code: 1, msg: 'missing collection or action' };
@@ -24,7 +47,6 @@ exports.main = async (event, context) => {
     return { code: 1, msg: 'invalid collection' };
   }
 
-  const db = uniCloud.database();
   const col = db.collection(collection);
 
   try {

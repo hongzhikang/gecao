@@ -66,6 +66,16 @@ export class Player {
     if (classInstance) classInstance.applyToPlayer(this);
   }
 
+  /** 应用培育加成（在 setClass 之后调用） */
+  applyCultivationBonus(bonus) {
+    if (!bonus) return;
+    this.baseMaxHp += bonus.maxHp ?? 0;
+    this.maxHp = Math.floor(this.baseMaxHp * (1 + (this.level - 1) * 0.08));
+    this.hp = Math.min(this.hp, this.maxHp);
+    this.damageMultiplier += bonus.attack ?? 0;
+    this.attackSpeedMultiplier += bonus.attackSpeed ?? 0;
+  }
+
   async createSprite(assetLoader) {
     const idlePath = this.classInstance?.spritePath ?? '/assets/characters/warrior_idle.png';
     const idleTex = await assetLoader.loadTexture(idlePath);

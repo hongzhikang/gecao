@@ -1,7 +1,11 @@
 import axios from 'axios'
+import router from '../router'
+
+const TOKEN_KEY = 'admin_token'
 
 const baseURL = import.meta.env.VITE_ADMIN_API_URL || ''
 const uploadBaseURL = import.meta.env.VITE_UPLOAD_API_URL || baseURL
+const authBaseURL = import.meta.env.VITE_ADMIN_AUTH_URL || ''
 
 const client = axios.create({
   baseURL,
@@ -12,6 +16,54 @@ const uploadClient = axios.create({
   baseURL: uploadBaseURL,
   headers: { 'Content-Type': 'application/json' },
 })
+
+const authClient = axios.create({
+  baseURL: authBaseURL,
+  headers: { 'Content-Type': 'application/json' },
+})
+
+function addTokenInterceptor(axiosInstance) {
+  axiosInstance.interceptors.request.use((config) => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) config.headers.Authorization = 'Bearer ' + token
+    return config
+  })
+}
+
+function addUnauthInterceptor(axiosInstance) {
+  axiosInstance.interceptors.response.use(
+    (res) => {
+      if (res.data && res.data.code === 401) {
+        localStorage.removeItem(TOKEN_KEY)
+        router.push('/login')
+        return Promise.reject(Object.assign(new Error('unauthorized'), { response: res }))
+      }
+      return res
+    },
+    (err) => {
+      const code = err.response?.data?.code
+      const status = err.response?.status
+      if (code === 401 || status === 401) {
+        localStorage.removeItem(TOKEN_KEY)
+        router.push('/login')
+      }
+      return Promise.reject(err)
+    }
+  )
+}
+
+addTokenInterceptor(client)
+addTokenInterceptor(uploadClient)
+addUnauthInterceptor(client)
+addUnauthInterceptor(uploadClient)
+
+export async function authApi(action, username, password) {
+  const res = await authClient.post('', { action, username, password })
+  if (res.data.code !== 0) {
+    throw Object.assign(new Error(res.data.msg || 'auth failed'), { response: res })
+  }
+  return res.data
+}
 
 export async function adminApi(collection, action, id = null, data = null) {
   const body = { collection, action }

@@ -7,12 +7,15 @@ import * as THREE from 'three';
 
 export const textureLoader = new THREE.TextureLoader();
 
-/** 将路径解析为当前页面的绝对 URL，确保从 public 正确加载 */
+/** 将路径解析为当前页面的绝对 URL，支持子路径部署（如 /game/） */
 export function resolveAssetUrl(path) {
   if (typeof path !== 'string') return path;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  const base = typeof window !== 'undefined' ? window.location.origin : '';
-  return path.startsWith('/') ? base + path : base + '/' + path;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
+  const baseNorm = base.replace(/\/$/, '');
+  const pathNorm = path.startsWith('/') ? path : '/' + path;
+  return origin + baseNorm + pathNorm;
 }
 
 /**

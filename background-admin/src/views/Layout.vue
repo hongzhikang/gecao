@@ -16,6 +16,9 @@
         <el-menu-item index="/rewards">奖励</el-menu-item>
         <el-menu-item index="/levels">关卡</el-menu-item>
       </el-menu>
+      <div class="logout-wrap">
+        <el-button type="danger" plain size="small" @click="handleLogout">退出</el-button>
+      </div>
     </el-aside>
     <el-main class="main">
       <router-view />
@@ -24,6 +27,15 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const TOKEN_KEY = 'admin_token'
+
+function handleLogout() {
+  localStorage.removeItem(TOKEN_KEY)
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -39,6 +51,13 @@
   font-weight: 600;
   padding: 20px;
   text-align: center;
+}
+.logout-wrap {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logout-wrap .el-button {
+  width: 100%;
 }
 .main {
   background-color: #f0f2f5;
