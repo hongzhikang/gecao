@@ -105,6 +105,16 @@
     }
     #character-select .card .name { color: #0af; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
     #character-select .card .desc { color: #aaa; font-size: 13px; line-height: 1.4; }
+    /* 主界面顶部栏：金币 + 人物培育（仅登录后显示） */
+    #character-select .menu-top-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; background: rgba(10,10,18,0.9); border-bottom: 1px solid #333;
+      box-sizing: border-box;
+    }
+    #character-select .menu-top-bar.hidden { display: none; }
+    #character-select .menu-top-bar .menu-coins { color: #daa520; font-size: 16px; }
+    #character-select .menu-top-bar .diff-btn { padding: 6px 16px; font-size: 14px; }
     /* 加载进度条 */
     #loading-overlay {
       position: fixed; inset: 0; z-index: 200; background: rgba(10,10,18,0.95);
@@ -118,25 +128,81 @@
     #loading-overlay .loading-bar-fill {
       height: 100%; width: 0%; background: linear-gradient(90deg, #08c, #0cf); transition: width 0.15s;
     }
+    /* 登录界面 */
+    #login-panel {
+      position: fixed; inset: 0; z-index: 100;
+      background: linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+    }
+    #login-panel.hidden { display: none; }
+    #login-panel h1 { color: #e0e0e0; font-size: 26px; margin-bottom: 24px; }
+    #login-panel input {
+      width: 260px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px;
+      background: #222; color: #fff; border: 2px solid #444; border-radius: 6px;
+    }
+    #login-panel input:focus { border-color: #0af; outline: none; }
+    #login-panel .btn { padding: 10px 24px; margin: 4px; font-size: 14px; cursor: pointer; border-radius: 6px; border: 2px solid #0af; background: #2a2a4a; color: #fff; }
+    #login-panel .btn:hover { background: #333; border-color: #0cf; }
+    #login-panel .guest-btn { border-color: #666; }
+    #login-panel .login-msg { color: #f88; font-size: 13px; margin-top: 8px; min-height: 18px; }
+    /* 人物培育界面 */
+    #cultivation-panel {
+      position: fixed; inset: 0; z-index: 100;
+      background: linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%);
+      display: none; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto;
+    }
+    #cultivation-panel.visible { display: flex; }
+    #cultivation-panel h1 { color: #0af; font-size: 22px; margin-bottom: 8px; }
+    #cultivation-panel .coins-display { color: #daa520; font-size: 18px; margin-bottom: 20px; }
+    #cultivation-panel .cult-row {
+      width: 100%; max-width: 360px; display: flex; align-items: center; justify-content: space-between;
+      padding: 12px; margin-bottom: 8px; background: rgba(30,30,50,0.8); border: 1px solid #444; border-radius: 8px;
+    }
+    #cultivation-panel .cult-name { color: #e0e0e0; }
+    #cultivation-panel .cult-level { color: #8af; margin-left: 8px; }
+    #cultivation-panel .cult-cost { color: #daa520; font-size: 13px; }
+    #cultivation-panel .cult-upgrade-btn { padding: 6px 14px; font-size: 13px; cursor: pointer; border-radius: 4px; border: 2px solid #0af; background: #2a2a4a; color: #fff; }
+    #cultivation-panel .cult-upgrade-btn:hover:not(:disabled) { background: #333; }
+    #cultivation-panel .cult-upgrade-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #cultivation-panel .cult-back { margin-top: 24px; padding: 10px 24px; border: 2px solid #666; background: #333; color: #fff; border-radius: 6px; cursor: pointer; }
+    #cultivation-panel .cult-back:hover { border-color: #0af; }
+    #cultivation-panel .cult-msg { color: #f88; font-size: 13px; margin-top: 8px; }
   </style>
-  <script type="module" crossorigin src="/game/assets/index-jp1oAXeO.js"></script>
+  <script type="module" crossorigin src="/game/assets/index-8AHuj9Xv.js"></script>
 </head>
 <body>
   <div id="loading-overlay">
     <span class="loading-text">加载资源中…</span>
     <div class="loading-bar-wrap"><div class="loading-bar-fill" id="loading-bar-fill"></div></div>
   </div>
-  <div id="character-select">
+  <div id="login-panel">
     <h1>割草幸存者</h1>
-    <p class="subtitle">选择模式与职业开始战斗</p>
+    <p class="subtitle" style="color:#888;margin-bottom:16px;">登录或注册以同步金币与培育</p>
+    <input type="text" id="login-username" placeholder="用户名" autocomplete="username" />
+    <input type="password" id="login-password" placeholder="密码（至少6位）" autocomplete="current-password" />
+    <div>
+      <button type="button" class="btn" id="login-btn">登录</button>
+      <button type="button" class="btn" id="register-btn">注册</button>
+    </div>
+    <button type="button" class="btn guest-btn" id="guest-btn">游客进入</button>
+    <p class="login-msg" id="login-msg"></p>
+  </div>
+  <div id="character-select" class="hidden">
+    <div id="menu-top-bar" class="menu-top-bar hidden">
+      <span id="menu-coins" class="menu-coins"></span>
+      <button type="button" class="diff-btn" id="btn-cultivation">人物培育</button>
+    </div>
+    <h1>割草幸存者</h1>
+    <p class="subtitle" style="margin-bottom:8px;">选择模式与职业开始战斗</p>
+    <p class="subtitle menu-guest-hint" id="menu-guest-hint" style="margin-bottom:12px;color:#666;font-size:12px;"></p>
     <div style="display:flex;gap:12px;margin-bottom:12px;">
       <button type="button" class="diff-btn selected" id="mode-classic">经典模式</button>
       <button type="button" class="diff-btn" id="mode-survival">生存模式</button>
     </div>
     <p class="subtitle" style="margin-bottom:6px;">选择章节</p>
-    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;">
-      <button type="button" class="diff-btn chapter-btn selected" id="chapter-none" style="padding:6px 16px;font-size:14px;">无章节（原始模式）</button>
-      <button type="button" class="diff-btn chapter-btn" id="chapter-grass" style="padding:6px 16px;font-size:14px;">第一章·荒野试炼</button>
+    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;" id="chapter-buttons-wrap">
+      <button type="button" class="diff-btn chapter-btn selected" id="chapter-none" data-chapter-id="" style="padding:6px 16px;font-size:14px;">无章节（原始模式）</button>
+      <div id="chapter-list" style="display:contents;"></div>
     </div>
     <p class="subtitle" style="margin-bottom:8px;">选择职业</p>
     <div class="cards">
@@ -156,6 +222,13 @@
         <div class="desc">召唤小弟自动攻击，可升级召唤数量。适合人海战术。</div>
       </div>
     </div>
+  </div>
+  <div id="cultivation-panel">
+    <h1>人物培育</h1>
+    <p class="coins-display" id="cult-coins">金币: 0</p>
+    <div id="cult-list"></div>
+    <button type="button" class="cult-back" id="cult-back">返回</button>
+    <p class="cult-msg" id="cult-msg"></p>
   </div>
   <script>
     (function(){

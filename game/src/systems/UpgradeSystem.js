@@ -268,12 +268,18 @@ export class UpgradeSystem {
     }
     choices.innerHTML = '';
     if (title) title.textContent = `波次 ${wave} 完成！选一项奖励`;
+    if (this.game?.audio) {
+      this.game.audio.playSound('assets/audio/sfx_reward_open.mp3', { volume: 0.9 });
+    }
     opts.forEach((opt) => {
       const div = document.createElement('div');
       div.className = 'choice';
       div.innerHTML = `<strong>${opt.name}</strong><br><small>${opt.desc}</small>`;
       div.onclick = () => {
         opt.apply();
+        if (this.game?.audio) {
+          this.game.audio.playSound('assets/audio/sfx_reward_select.mp3', { volume: 1.0 });
+        }
         this.hideWaveReward();
         if (onClose) onClose();
       };
@@ -298,6 +304,9 @@ export class UpgradeSystem {
       return;
     }
     choices.innerHTML = '';
+    if (this.game?.audio) {
+      this.game.audio.playSound('assets/audio/sfx_reward_open.mp3', { volume: 0.9 });
+    }
     if (isGolden) {
       if (title) title.textContent = '黄金宝箱奖励';
       opts.forEach((opt) => opt.apply());
@@ -309,6 +318,9 @@ export class UpgradeSystem {
       btn.className = 'choice';
       btn.textContent = '继续战斗';
       btn.onclick = () => {
+        if (this.game?.audio) {
+          this.game.audio.playSound('assets/audio/sfx_reward_select.mp3', { volume: 1.0 });
+        }
         this.hideChestReward();
         if (onClose) onClose();
       };
@@ -321,6 +333,9 @@ export class UpgradeSystem {
         div.innerHTML = `<strong>${opt.name}</strong><br><small>${opt.desc}</small>`;
         div.onclick = () => {
           opt.apply();
+          if (this.game?.audio) {
+            this.game.audio.playSound('assets/audio/sfx_reward_select.mp3', { volume: 1.0 });
+          }
           this.hideChestReward();
           if (onClose) onClose();
         };

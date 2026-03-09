@@ -28,7 +28,7 @@ export class MeleeSkill extends BaseSkill {
     const py = this.owner.position.y;
 
     if (this.game.onMeleeHit) {
-      this.game.onMeleeHit(px, py, r, dmg, this.duration);
+      this.game.onMeleeHit(px, py, r, dmg, this.duration, isCrit);
     }
 
     const enemies = this.game.getEnemiesInRadius?.(px, py, r) ?? [];

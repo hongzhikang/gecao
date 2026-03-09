@@ -105,6 +105,8 @@ export class SpawnSystem {
 
   async spawnWave(waveConfig) {
     const list = waveConfig?.enemies ?? [{ type: 'basicZombie', count: 5 }];
+    const hasBoss = list.some((cfg) => cfg.type === 'boss');
+    let bossSpawned = false;
     for (const { type = 'basicZombie', count = 1 } of list) {
       if (!this.game.enemyPool) return;
       for (let i = 0; i < count; i++) {
@@ -112,7 +114,16 @@ export class SpawnSystem {
         const enemy = await this.game.enemyPool.get(type, pos);
         this.game.scene.add(enemy.mesh);
         this.game.enemies.push(enemy);
+        if (type === 'boss' && !bossSpawned) {
+          bossSpawned = true;
+          if (this.game.audio) {
+            this.game.audio.playSound('assets/audio/sfx_boss_spawn.mp3', { volume: 1.0 });
+          }
+        }
       }
+    }
+    if (hasBoss && this.game.audio) {
+      this.game.audio.playMusic('assets/audio/bgm_boss.mp3', { loop: true, volume: 0.7, fadeSeconds: 0.5 });
     }
   }
 }

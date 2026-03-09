@@ -130,6 +130,7 @@ export class Game {
     this.pendingLevelUpPlayer = null;
     this.lastChestDropTime = 0;
     this.chestDropInterval = 55;
+    this.lowHpWarningActive = false;
     this._bindUI();
     this.warriorRangeIndicator = null;
     if (this.player.classInstance?.constructor?.name === 'Warrior') {
@@ -357,6 +358,7 @@ export class Game {
 
   _explodeAt(x, y, radius, damage, slowDuration, slowFactor) {
     const list = this.getEnemiesInRadius(x, y, radius);
+    let anyHit = false;
     list.forEach((e) => {
       if (e.isAlive()) {
         const { damage: dmg, isCrit } = this.applyCrit(damage, this.player);
@@ -367,9 +369,13 @@ export class Game {
           e.speed = base * (slowFactor ?? 0.5);
           setTimeout(() => { e.speed = base; }, slowDuration * 1000);
         }
+        anyHit = true;
       }
     });
     this._spawnParticles(x, y, 12, 0xff8844);
+    if (anyHit && this.audio) {
+      this.audio.playSound('assets/audio/sfx_hit_light.mp3', { volume: 0.9 });
+    }
   }
 
   _spawnParticles(x, y, count, color) {
@@ -388,19 +394,29 @@ export class Game {
     }
   }
 
-  onMeleeHit(x, y, radius, damage, duration) {
+  onMeleeHit(x, y, radius, damage, duration, isCrit = false) {
     this._spawnParticles(x, y, 8, 0xffcc00);
     this.screenShake = Math.min(0.15, this.screenShake + 0.08);
+    if (this.audio) {
+      const url = isCrit ? 'assets/audio/sfx_hit_crit.mp3' : 'assets/audio/sfx_hit_light.mp3';
+      this.audio.playSound(url, { volume: isCrit ? 1.0 : 0.85 });
+    }
   }
 
   onPlayerHit() {
     this.screenShake = 0.25;
     this.hurtFlashUntil = this.time + 0.35;
+    if (this.audio) {
+      this.audio.playSound('assets/audio/sfx_player_hurt.mp3', { volume: 1.0 });
+    }
   }
 
   onLevelUp(player) {
     this.levelUpSlowMotionUntil = performance.now() / 1000 + 0.3;
     this.pendingLevelUpPlayer = player;
+    if (this.audio) {
+      this.audio.playSound('assets/audio/sfx_level_up.mp3', { volume: 1.0 });
+    }
   }
 
   async start(options = {}) {
@@ -413,6 +429,9 @@ export class Game {
     await this._setupPlayer();
     this._setupHurtFlash();
     this._setupFloatTexts();
+    if (this.audio) {
+      this.audio.playMusic('assets/audio/bgm_main_loop.mp3', { loop: true, volume: 0.6 });
+    }
     this.inputManager.start(this.container);
     this.player.classInstance?.setGame(this);
     this.waveSystem.waveStartTime = this.time;
@@ -511,6 +530,10 @@ export class Game {
         const { damage: dmg, isCrit } = this.applyCrit(p.damage, this.player);
         if (this._showDamageFloat) this._showDamageFloat(e.position.x, e.position.y, dmg, isCrit);
         e.takeDamage(dmg, p.x, p.y, true);
+        if (this.audio) {
+          const url = isCrit ? 'assets/audio/sfx_hit_crit.mp3' : 'assets/audio/sfx_hit_light.mp3';
+          this.audio.playSound(url, { volume: isCrit ? 1.0 : 0.85 });
+        }
         if (p.explodeRadius > 0) {
           this._explodeAt(p.x, p.y, p.explodeRadius, 0, p.slowDuration, p.slowFactor);
           p.life = 0;
@@ -626,6 +649,21 @@ export class Game {
             other.mesh.position.set(other.position.x, other.position.y, 0);
           }
         });
+        if (this.audio) {
+          let sfx = 'assets/audio/sfx_enemy_die.mp3';
+          if (e.type === 'boss') {
+            sfx = 'assets/audio/sfx_boss_die.mp3';
+          } else if (e.type === 'eliteEnemy' || e.type === 'fastRusher') {
+            sfx = 'assets/audio/sfx_elite_die.mp3';
+          }
+          this.audio.playSound(sfx, { volume: e.type === 'boss' ? 1.0 : 0.9 });
+          if (e.type === 'boss') {
+            const hasOtherBoss = this.enemies.some((other, idx) => idx !== i && other.type === 'boss' && other.isAlive());
+            if (!hasOtherBoss) {
+              this.audio.playMusic('assets/audio/bgm_main_loop.mp3', { loop: true, volume: 0.6, fadeSeconds: 0.5 });
+            }
+          }
+        }
         this.killCount++;
         this.earnedCoins = (this.earnedCoins || 0) + 1;
         this.player.addExp(e.expDrop);
@@ -679,6 +717,9 @@ export class Game {
         this.scene.remove(c.mesh);
         c.dispose();
         this.chests.splice(i, 1);
+        if (this.audio) {
+          this.audio.playSound('assets/audio/sfx_chest_open.mp3', { volume: 1.0 });
+        }
         this.paused = true;
         this.upgradeSystem.showChestReward(this.player, c.isGolden, () => {
           this.paused = false;
@@ -774,6 +815,15 @@ export class Game {
       const m = Math.floor(this.time / 60);
       const s = Math.floor(this.time % 60);
       timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    const hpRatio = this.player.maxHp > 0 ? (this.player.hp / this.player.maxHp) : 0;
+    if (this.audio) {
+      if (hpRatio < 0.25 && !this.lowHpWarningActive) {
+        this.lowHpWarningActive = true;
+        this.audio.playSound('assets/audio/sfx_low_hp_warning.mp3', { volume: 1.0 });
+      } else if (hpRatio >= 0.35 && this.lowHpWarningActive) {
+        this.lowHpWarningActive = false;
+      }
     }
     const waveNumEl = document.getElementById('wave-num');
     const waveCountEl = document.getElementById('wave-count');
